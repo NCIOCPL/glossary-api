@@ -5,10 +5,13 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Moq;
 using Xunit;
 using NCI.OCPL.Api.Glossary.Controllers;
 using Newtonsoft.Json;
-
+using NCI.OCPL.Api.Glossary.Interfaces;
+using NCI.OCPL.Api.Glossary.Services;
+using Nest;
 
 namespace NCI.OCPL.Api.Glossary.Tests
 {
@@ -30,7 +33,9 @@ namespace NCI.OCPL.Api.Glossary.Tests
         [Fact]
         public void GetById()
         {
-            TermController controller = new TermController();
+            IElasticClient elasticClient = new ElasticClient();
+            ITermQueryService  termQueryService = new TermQueryService(elasticClient);
+            TermController controller = new TermController(termQueryService);
             GlossaryTerm gsTerm = controller.GetById("Dictionary", AudienceType.Patient, "EN", 10L);
             string actualJsonValue = JsonConvert.SerializeObject(gsTerm);
             string expectedJsonValue = File.ReadAllText("Tests\\TestData\\TestData.json");
@@ -40,7 +45,8 @@ namespace NCI.OCPL.Api.Glossary.Tests
         [Fact]
         public void Say_Hello_World()
         {
-            TermController controller = new TermController();
+            Mock<ITermQueryService> termQueryService = new Mock<ITermQueryService>();
+            TermController controller = new TermController(termQueryService.Object);
             string actualValue = controller.SayHelloWorld();
             string expectedValue = "Hello New World";
             Assert.Equal(expectedValue, actualValue);
@@ -49,16 +55,11 @@ namespace NCI.OCPL.Api.Glossary.Tests
         [Fact]
         public void Say_Hello_World_Error()
         {
-            TermController controller = new TermController();
+            Mock<ITermQueryService> termQueryService = new Mock<ITermQueryService>();
+            TermController controller = new TermController(termQueryService.Object);
             string actualValue = controller.SayHelloWorld();
             string expectedValue = "Hello";
             Assert.NotSame(expectedValue, actualValue);
-        }
-
-        private void GetTestData()
-        {
-            string jsonstr = File.ReadAllText("C:\\Projects\\NCI\\nciocpl\\glossary-api\\test\\NCI.OCPL.Api.Glossary.Tests\\Tests\\TestData\\TestData.json"); 
-            var ser = JsonConvert.DeserializeObject<GlossaryTerm>(jsonstr);
         }
     }
 }

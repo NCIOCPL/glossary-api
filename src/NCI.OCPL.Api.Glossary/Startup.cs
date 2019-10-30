@@ -1,82 +1,67 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json.Serialization;
-using Newtonsoft.Json.Converters;
+using Microsoft.Extensions.Logging;
+using NCI.OCPL.Api.Common;
+using NCI.OCPL.Api.Glossary.Interfaces;
+using NCI.OCPL.Api.Glossary.Services;
 
 namespace NCI.OCPL.Api.Glossary
 {
     /// <summary>
-    /// Defines the configuration for the Glossary API
-    /// </summary>    
-    public class Startup
+    /// Defines the configuration for the Best Bets API
+    /// </summary>
+    public class Startup : NciStartupBase
     {
-
         /// <summary>
         /// Initializes a new instance of the <see cref="T:NCI.OCPL.Api.Glossary.Startup"/> class.
         /// </summary>
-        public Startup(IConfiguration configuration)
+        /// <param name="env">Env.</param>
+        public Startup(IHostingEnvironment env)
+            : base(env) { }
+
+
+        /*****************************
+         * ConfigureServices methods *
+         *****************************/
+
+        /// <summary>
+        /// Adds the configuration mappings.
+        /// </summary>
+        /// <param name="services">Services.</param>
+        protected override void AddAdditionalConfigurationMappings(IServiceCollection services)
         {
-            Configuration = configuration;
+            // services.Configure<CGBBIndexOptions>(Configuration.GetSection("CGBestBetsIndex"));
+
         }
 
         /// <summary>
-        /// member variable
+        /// Adds in the application specific services
         /// </summary>
-        public IConfiguration Configuration { get; }
-        
-        /// <summary>
-        /// This method gets called by the runtime. Use this method to add services to the container.
-        /// </summary>
-        public void ConfigureServices(IServiceCollection services)
+        /// <param name="services">Services.</param>
+        protected override void AddAppServices(IServiceCollection services)
         {
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1)
-            .AddJsonOptions(options =>
-            {
-                // Use camel case properties in the serializer and the spec (optional)
-                options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
-                // Use string enums in the serializer and the spec (optional)
-                options.SerializerSettings.Converters.Add(new StringEnumConverter());
-            });
+            //Add our Term Query Service
+            services.AddTransient<ITermQueryService, TermQueryService>();
             
-            // Register the Swagger services
-            // Add OpenAPI/Swagger document
-            services.AddOpenApiDocument(document =>
-            {
-                document.Title = "Glossory Term API";
-                document.DocumentName = "v1";
-                document.PostProcess = document2 => {
-                    document2.Host = null;
-                    document2.Servers.Clear();
-                };
-            });
         }
 
-        
+        /*****************************
+         *     Configure methods     *
+         *****************************/
+
         /// <summary>
-        /// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        /// </summary>        
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        /// Configure the specified app and env.
+        /// </summary>
+        /// <returns>The configure.</returns>
+        /// <param name="app">App.</param>
+        /// <param name="env">Env.</param>
+        /// <param name="loggerFactory">Logger.</param>
+        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+        protected override void ConfigureAppSpecific(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
-            else
-            {
-                app.UseHsts();
-            }
-
-            app.UseStaticFiles();
-
-            // Register the Swagger generator and the Swagger UI middlewares
-            app.UseOpenApi();
-            app.UseSwaggerUi3();
-
-            app.UseHttpsRedirection();
-            app.UseMvc();
+            return;
         }
+
     }
 }

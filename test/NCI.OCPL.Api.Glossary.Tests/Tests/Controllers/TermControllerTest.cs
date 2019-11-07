@@ -4,7 +4,7 @@ using Moq;
 using Xunit;
 using NCI.OCPL.Api.Glossary.Controllers;
 using Newtonsoft.Json;
-using NCI.OCPL.Api.Glossary.Interfaces;
+using NCI.OCPL.Api.Glossary;
 using NCI.OCPL.Api.Glossary.Services;
 using NCI.OCPL.Api.Common.Testing;
 using Nest;
@@ -41,7 +41,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
             TermController controller = new TermController(termQueryService.Object);
             var exception = Assert.Throws<APIErrorException>(() => controller.GetById("Dictionary", AudienceType.Patient, "", 10L, new string[]{}));
             Assert.Equal("You must supply a valid dictionary, audience, language and id", exception.Message);
-        } 
+        }
 
         [Fact]
         public void GetById_ErrorMessage_Id(){
@@ -49,7 +49,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
             TermController controller = new TermController(termQueryService.Object);
             var exception = Assert.Throws<APIErrorException>(() => controller.GetById("Dictionary", AudienceType.Patient, "EN", 0L, new string[]{}));
             Assert.Equal("You must supply a valid dictionary, audience, language and id", exception.Message);
-        }       
+        }
 
         [Fact]
         public void GetById()
@@ -68,7 +68,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
                 PrettyUrlName = "www.glossary-api.com",
                 Pronounciation = pronounciation,
                 Definition = definition,
-                RelatedResourceType = new RelatedResourceType [] {RelatedResourceType.Summary , RelatedResourceType.DrugSummary},
+                RelatedResources = new RelatedResourceType [] {RelatedResourceType.Summary , RelatedResourceType.DrugSummary},
             };
             termQueryService.Setup(
                 termQSvc => termQSvc.GetById(
@@ -95,7 +95,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
             );
 
             Assert.Equal(expectedJsonValue, actualJsonValue);
-        }   
+        }
 
         [Fact]
         public void GetById_BlankRequiredFields()
@@ -114,7 +114,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
                 PrettyUrlName = "www.glossary-api.com",
                 Pronounciation = pronounciation,
                 Definition = definition,
-                RelatedResourceType = new RelatedResourceType [] {RelatedResourceType.Summary , RelatedResourceType.DrugSummary},
+                RelatedResources = new RelatedResourceType [] {RelatedResourceType.Summary , RelatedResourceType.DrugSummary},
             };
             termQueryService.Setup(
                 termQSvc => termQSvc.GetById(
@@ -141,6 +141,6 @@ namespace NCI.OCPL.Api.Glossary.Tests
             );
 
             Assert.Equal(expectedJsonValue, actualJsonValue);
-        }                          
+        }
     }
 }

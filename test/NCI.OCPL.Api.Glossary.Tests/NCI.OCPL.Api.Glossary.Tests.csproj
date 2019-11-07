@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/NCI.OCPL.Api.Glossary/NCI.OCPL.Api.Glossary.csproj" />
+    <ProjectReference Include="../../src/NCI.OCPL.Api.Common/NCI.OCPL.Api.Common.csproj" />
     <ProjectReference Include="../../src/NCI.OCPL.Api.Common.Testing/NCI.OCPL.Api.Common.Testing.csproj" />
   </ItemGroup>
 

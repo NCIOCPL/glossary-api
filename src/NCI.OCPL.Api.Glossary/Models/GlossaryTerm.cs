@@ -33,32 +33,32 @@ namespace NCI.OCPL.Api.Glossary
 
         /// <summary>
         /// Gets or sets the prettyUrlName for the Glosary Term
-        /// </summary>  
+        /// </summary>
         public string  PrettyUrlName { get; set; }
 
         /// <summary>
         /// Gets or sets the pronounciation for the Glosary Term
-        /// </summary>  
+        /// </summary>
         public Pronounciation Pronounciation  { get; set; }
 
         /// <summary>
         /// Gets or sets the Definition for the Glosary Term
-        /// </summary> 
+        /// </summary>
         public Definition Definition  { get; set; }
 
         /// <summary>
         /// Gets or sets the Definition for the Glosary Term
-        /// </summary> 
-        public RelatedResourceType[] RelatedResourceType  { get; set; }
+        /// </summary>
+        public RelatedResourceType[] RelatedResources  { get; set; }
 
         /// <summary>
         /// Gets or sets the Definition for the Glosary Term
-        /// </summary> 
+        /// </summary>
         public IMedia[] Media  { get; set; }
 
         /// <summary>
         /// no arg constructor
-        /// </summary> 
-        public GlossaryTerm() {}                
+        /// </summary>
+        public GlossaryTerm() {}
     }
 }

@@ -1,18 +1,18 @@
-using NCI.OCPL.Api.Glossary.Interfaces;
+using NCI.OCPL.Api.Glossary;
 using Nest;
 
 namespace NCI.OCPL.Api.Glossary.Services
 {
     /// <summary>
     /// Concrete Implementation class for a Term Query service.
-    /// </summary>    
+    /// </summary>
     public class TermQueryService : ITermQueryService
     {
         private IElasticClient _elasticClient;
 
         /// <summary>
         /// One arg constructor
-        /// </summary> 
+        /// </summary>
         public TermQueryService(IElasticClient client){
             _elasticClient = client;
         }
@@ -24,8 +24,8 @@ namespace NCI.OCPL.Api.Glossary.Services
         /// <param name="language">The language in which the details needs to be fetched</param>
         /// <param name="id">The Id for the term</param>
         /// <param name="requestedFields"> The list of fields that needs to be sent in the response</param>
-        /// <returns>An object of GlossaryTerm</returns>        
-        /// </summary>        
+        /// <returns>An object of GlossaryTerm</returns>
+        /// </summary>
         public GlossaryTerm GetById(string dictionary, AudienceType audience, string language, long id, string[] requestedFields){
             // TODO
             // Uncomment the below line and replace it with actual call to Elastic search
@@ -74,8 +74,8 @@ namespace NCI.OCPL.Api.Glossary.Services
                 }
             }
 
-            _GlossaryTerm.RelatedResourceType = new RelatedResourceType [] {RelatedResourceType.Summary , RelatedResourceType.DrugSummary};
+            _GlossaryTerm.RelatedResources = new RelatedResourceType [] {RelatedResourceType.Summary , RelatedResourceType.DrugSummary};
             return _GlossaryTerm;
-        }        
+        }
     }
 }

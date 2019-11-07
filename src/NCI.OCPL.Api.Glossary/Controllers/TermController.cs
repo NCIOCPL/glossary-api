@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 
 using NCI.OCPL.Api.Common;
-using NCI.OCPL.Api.Glossary.Interfaces;
+using NCI.OCPL.Api.Glossary;
 
 namespace NCI.OCPL.Api.Glossary.Controllers
 {

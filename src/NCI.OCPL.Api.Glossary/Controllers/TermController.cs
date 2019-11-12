@@ -27,13 +27,13 @@ namespace NCI.OCPL.Api.Glossary.Controllers
         /// </summary>
         /// <returns>GlossaryTerm object</returns>
         [HttpGet("{dictionary}/{audience}/{language}/{id}")]
-        public GlossaryTerm GetById(string dictionary, AudienceType audience, string language, long id){
+        public GlossaryTerm GetById(string dictionary, AudienceType audience, string language, long id, [FromQuery] string[] requestedFields){
 
              if (String.IsNullOrWhiteSpace(dictionary) || String.IsNullOrWhiteSpace(language) || id <= 0){
                 throw new APIErrorException(400, "You must supply a valid dictionary, audience, language and id");
              }
 
-             return _termQueryService.GetById(dictionary,audience,language,id);
+             return _termQueryService.GetById(dictionary,audience,language,id, requestedFields);
         }
     }
 

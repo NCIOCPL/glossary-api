@@ -37,10 +37,24 @@ namespace NCI.OCPL.Api.Glossary.Tests
             IElasticClient elasticClient = new ElasticClient();
             ITermQueryService termQueryService = new TermQueryService(elasticClient);
             TermController controller = new TermController(termQueryService);
-            GlossaryTerm gsTerm = controller.GetById("Dictionary", AudienceType.Patient, "EN", 10L);
+            string[] requestedFields = {"TermName","Pronunciation","Definition"};
+            GlossaryTerm gsTerm = controller.GetById("Dictionary", AudienceType.Patient, "EN", 10L, requestedFields);
             string actualJsonValue = JsonConvert.SerializeObject(gsTerm);
             string expectedJsonValue = File.ReadAllText(TestingTools.GetPathToTestFile("TestData.json"));
             Assert.Equal(expectedJsonValue, actualJsonValue);
         }
+
+        [Fact]
+        public void GetByIdForEmptyRequestedFields()
+        {
+            IElasticClient elasticClient = new ElasticClient();
+            ITermQueryService termQueryService = new TermQueryService(elasticClient);
+            TermController controller = new TermController(termQueryService);
+            string[] requestedFields = new string[] {};
+            GlossaryTerm gsTerm = controller.GetById("Dictionary", AudienceType.Patient, "EN", 10L, requestedFields);
+            string actualJsonValue = JsonConvert.SerializeObject(gsTerm);
+            string expectedJsonValue = File.ReadAllText(TestingTools.GetPathToTestFile("TestData.json"));
+            Assert.Equal(expectedJsonValue, actualJsonValue);
+        }        
     }
 }

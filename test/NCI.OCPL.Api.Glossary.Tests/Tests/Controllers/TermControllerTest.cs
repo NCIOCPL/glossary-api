@@ -42,25 +42,5 @@ namespace NCI.OCPL.Api.Glossary.Tests
             string expectedJsonValue = File.ReadAllText(TestingTools.GetPathToTestFile("TestData.json"));
             Assert.Equal(expectedJsonValue, actualJsonValue);
         }
-
-        [Fact]
-        public void Say_Hello_World()
-        {
-            Mock<ITermQueryService> termQueryService = new Mock<ITermQueryService>();
-            TermController controller = new TermController(termQueryService.Object);
-            string actualValue = controller.SayHelloWorld();
-            string expectedValue = "Hello New World";
-            Assert.Equal(expectedValue, actualValue);
-        }
-
-        [Fact]
-        public void Say_Hello_World_Error()
-        {
-            Mock<ITermQueryService> termQueryService = new Mock<ITermQueryService>();
-            TermController controller = new TermController(termQueryService.Object);
-            string actualValue = controller.SayHelloWorld();
-            string expectedValue = "Hello";
-            Assert.NotSame(expectedValue, actualValue);
-        }
     }
 }

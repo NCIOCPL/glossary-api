@@ -23,15 +23,6 @@ namespace NCI.OCPL.Api.Glossary.Controllers
         }
 
         /// <summary>
-        /// A temporary method added to check the health of the controller.
-        /// </summary>
-        [HttpGet("hello")]
-        public string SayHelloWorld()
-        {
-            return "Hello New World";
-        }
-
-        /// <summary>
         /// Get the Glossary Term based on Id.
         /// </summary>
         /// <returns>GlossaryTerm object</returns>

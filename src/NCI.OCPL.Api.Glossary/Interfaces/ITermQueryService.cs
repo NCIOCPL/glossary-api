@@ -1,4 +1,4 @@
-namespace NCI.OCPL.Api.Glossary.Interfaces
+namespace NCI.OCPL.Api.Glossary
 {
     /// <summary>
     /// Interface for a Term Query service.

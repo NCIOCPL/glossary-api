@@ -33,6 +33,14 @@ namespace NCI.OCPL.Api.Glossary.Controllers
                 throw new APIErrorException(400, "You must supply a valid dictionary, audience, language and id");
              }
 
+             if(null == requestedFields){
+                 requestedFields =  new string[] {};
+             }
+
+             if(requestedFields.Length == 0){
+                  requestedFields =  new string[]{"TermName","Pronunciation","Definition"};
+             }
+
              return _termQueryService.GetById(dictionary,audience,language,id, requestedFields);
         }
     }

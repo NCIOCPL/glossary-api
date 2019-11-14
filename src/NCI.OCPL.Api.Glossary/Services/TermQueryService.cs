@@ -1,5 +1,7 @@
 using NCI.OCPL.Api.Glossary;
 using Nest;
+using System;
+using System.Collections.Generic;
 
 namespace NCI.OCPL.Api.Glossary.Services
 {
@@ -34,7 +36,7 @@ namespace NCI.OCPL.Api.Glossary.Services
             return GenerateSampleTerm(requestedFields);
         }
 
-       /// <summary>
+        /// <summary>
         /// This temporary method will create a GlossaryTerm
         /// object to testing purpose.
         /// </summary>
@@ -56,20 +58,20 @@ namespace NCI.OCPL.Api.Glossary.Services
             foreach (string field in requestedFields)
             {
                 if(field.Equals("Id")){
-                    _GlossaryTerm.Id = 10L;
-                }else  if(field.Equals("Language")){
+                    _GlossaryTerm.Id = 1234L;
+                }else  if(field.Equals("Language",StringComparison.InvariantCultureIgnoreCase)){
                     _GlossaryTerm.Language = "EN";
-                }else  if(field.Equals("Dictionary")){
+                }else  if(field.Equals("Dictionary",StringComparison.InvariantCultureIgnoreCase)){
                     _GlossaryTerm.Dictionary = "Dictionary";
-                }else  if(field.Equals("Audience")){
+                }else  if(field.Equals("Audience",StringComparison.InvariantCultureIgnoreCase)){
                     _GlossaryTerm.Audience = AudienceType.Patient;
-                }else  if(field.Equals("TermName")){
+                }else  if(field.Equals("TermName",StringComparison.InvariantCultureIgnoreCase)){
                     _GlossaryTerm.TermName = "TermName";
-                }else  if(field.Equals("PrettyUrlName")){
+                }else  if(field.Equals("PrettyUrlName",StringComparison.InvariantCultureIgnoreCase)){
                     _GlossaryTerm.PrettyUrlName = "www.glossary-api.com";
-                }else  if(field.Equals("Pronounciation")){
+                }else  if(field.Equals("Pronounciation",StringComparison.InvariantCultureIgnoreCase)){
                     _GlossaryTerm.Pronounciation = pronounciation;
-                }else  if(field.Equals("Definition")){
+                }else  if(field.Equals("Definition",StringComparison.InvariantCultureIgnoreCase)){
                     _GlossaryTerm.Definition = definition;
                 }
             }

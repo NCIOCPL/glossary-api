@@ -7,6 +7,10 @@ using NCI.OCPL.Api.Common;
 using NCI.OCPL.Api.Glossary;
 using NCI.OCPL.Api.Glossary.Controllers;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using Newtonsoft.Json;
+using System.IO;
+using NCI.OCPL.Api.Common.Testing;
 
 namespace NCI.OCPL.Api.Glossary.Tests
 {
@@ -19,7 +23,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
 
             TermsController controller = new TermsController(querySvc.Object);
 
-            APIErrorException ex = await Assert.ThrowsAsync<APIErrorException>(() => controller.getAll("", AudienceType.HealthProfessional, "en"));
+            APIErrorException ex = await Assert.ThrowsAsync<APIErrorException>(() => controller.getAll("", "HealthProfessional", "en"));
         }
 
         [Fact]
@@ -29,7 +33,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
 
             TermsController controller = new TermsController(querySvc.Object);
 
-            APIErrorException ex = await Assert.ThrowsAsync<APIErrorException>(() => controller.getAll("glossary", AudienceType.HealthProfessional, ""));
+            APIErrorException ex = await Assert.ThrowsAsync<APIErrorException>(() => controller.getAll("glossary", "HealthProfessional", ""));
         }
 
         [Fact]
@@ -39,7 +43,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
 
             TermsController controller = new TermsController(querySvc.Object);
 
-            APIErrorException ex = await Assert.ThrowsAsync<APIErrorException>(() => controller.getAll("glossary", AudienceType.HealthProfessional, "turducken"));
+            APIErrorException ex = await Assert.ThrowsAsync<APIErrorException>(() => controller.getAll("glossary", "HealthProfessional", "turducken"));
         }
 
         /// <Summary>
@@ -65,7 +69,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
 
             // Call the controller, we don't care about the actual return value.
             TermsController controller = new TermsController(querySvc.Object);
-            await controller.getAll("glossary", AudienceType.HealthProfessional, "en");
+            await controller.getAll("glossary", "HealthProfessional", "en");
 
             // Verify that the query layer is called:
             //  a) with the expected values.
@@ -100,7 +104,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
 
             // Call the controller, we don't care about the actual return value.
             TermsController controller = new TermsController(querySvc.Object);
-            await controller.getAll("glossary", AudienceType.HealthProfessional, "es", 200, 2, new string[] {"Field1", "Field2", "Field3"});
+            await controller.getAll("glossary", "HealthProfessional", "es", 200, 2, new string[] {"Field1", "Field2", "Field3"});
 
             // Verify that the query layer is called:
             //  a) with the expected values.
@@ -111,6 +115,129 @@ namespace NCI.OCPL.Api.Glossary.Tests
                 "ITermsQueryService::getAll() should be called once, with the specified values for size, from, and requestedFields"
             );
         }
+
+       [Fact]
+        public async void SearchForTerms_ErrorMessage_MatchType(){
+            Mock<ITermsQueryService> termsQueryService = new Mock<ITermsQueryService>();
+            TermsController controller = new TermsController(termsQueryService.Object);
+            APIErrorException exception = await Assert.ThrowsAsync<APIErrorException>(() => controller.Search("Dictionary", "Patient", "EN", "Query",
+                                "doesnotcontain",1,1,new string[]{}));
+            Assert.Equal("'matchType' can only be 'begins' or 'contains'", exception.Message);
+        }   
+
+        [Fact]
+        public async void SearchForTerms_ErrorMessage_AudienceType(){
+            Mock<ITermsQueryService> termsQueryService = new Mock<ITermsQueryService>();
+            TermsController controller = new TermsController(termsQueryService.Object);
+            APIErrorException exception = await Assert.ThrowsAsync<APIErrorException>(() => controller.Search("Dictionary", "InvalidValue", "EN", "Query",
+                                "contains",0,1,new string[]{}));
+            Assert.Equal("'AudienceType' can  be 'Patient' or 'HealthProfessional' only", exception.Message);
+        }  
+
+
+        [Fact]
+        public async void SearchForTerms()
+        {
+            Mock<ITermsQueryService> termsQueryService = new Mock<ITermsQueryService>();
+            TermsController controller = new TermsController(termsQueryService.Object);
+            string[] requestedFields = new string[]{};
+            Pronounciation pronounciation = new Pronounciation("Pronounciation Key", "pronunciation");
+            Definition definition = new Definition("<html><h1>Definition</h1></html>", "Sample definition");
+            GlossaryTerm glossaryTerm = new GlossaryTerm
+            {
+                Id = 1234L,
+                Language = "EN",
+                Dictionary = "Dictionary",
+                Audience = AudienceType.Patient,
+                TermName = "TermName",
+                PrettyUrlName = "www.glossary-api.com",
+                Pronounciation = pronounciation,
+                Definition = definition,
+                RelatedResources = new RelatedResourceType [] {RelatedResourceType.Summary , RelatedResourceType.DrugSummary},
+            };
+            List<GlossaryTerm> glossaryTermList = new List<GlossaryTerm>();
+            glossaryTermList.Add(glossaryTerm);
+            termsQueryService.Setup(
+                termQSvc => termQSvc.Search(
+                    It.IsAny<string>(),
+                    It.IsAny<AudienceType>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<int>(),
+                    It.IsAny<int>(),
+                    It.IsAny<string[]>()
+                )
+            )
+            .Returns(Task.FromResult(glossaryTermList));
+
+            GlossaryTerm[] gsTerm = await controller.Search("Dictionary", "Patient", "EN", "Query", "contains",1,0,new string[] {"TermName","Pronunciation","Definition"});
+            string actualJsonValue = JsonConvert.SerializeObject(gsTerm);
+            string expectedJsonValue = File.ReadAllText(TestingTools.GetPathToTestFile("TestData_SearchForTerms.json"));
+
+            // Verify that the service layer is called:
+            //  a) with the expected values.
+            //  b) exactly once.
+            termsQueryService.Verify(
+                svc => svc.Search("Dictionary", AudienceType.Patient, "EN", "Query", "contains",1,0, new string[] {"TermName","Pronunciation","Definition"}),
+                Times.Once
+            );
+
+            Assert.Equal(expectedJsonValue, actualJsonValue);
+        }      
+
+       [Fact]
+        public async void SearchForTermsWithsize()
+        {
+            Mock<ITermsQueryService> termsQueryService = new Mock<ITermsQueryService>();
+            TermsController controller = new TermsController(termsQueryService.Object);
+            string[] requestedFields = new string[] {"TermName","Pronunciation","Definition"};
+            Pronounciation pronounciation = new Pronounciation("Pronounciation Key", "pronunciation");
+            Definition definition = new Definition("<html><h1>Definition</h1></html>", "Sample definition");
+            GlossaryTerm glossaryTerm = new GlossaryTerm
+            {
+                Id = 1234L,
+                Language = "EN",
+                Dictionary = "Dictionary",
+                Audience = AudienceType.Patient,
+                TermName = "TermName",
+                PrettyUrlName = "www.glossary-api.com",
+                Pronounciation = pronounciation,
+                Definition = definition,
+                RelatedResources = new RelatedResourceType [] {RelatedResourceType.Summary , RelatedResourceType.DrugSummary},
+            };
+            List<GlossaryTerm> glossaryTermList = new List<GlossaryTerm>();
+            glossaryTermList.Add(glossaryTerm);
+            int sizeValue = 100;
+            int fromValue = 0;
+            termsQueryService.Setup(
+                termQSvc => termQSvc.Search(
+                    It.IsAny<string>(),
+                    It.IsAny<AudienceType>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    sizeValue,
+                    fromValue,
+                    It.IsAny<string[]>()
+                )
+            )
+            .Returns(Task.FromResult(glossaryTermList));
+
+            GlossaryTerm[] gsTerm = await controller.Search("Dictionary", "Patient", "EN", "Query", "contains",0,0,requestedFields);
+            string actualJsonValue = JsonConvert.SerializeObject(gsTerm);
+            string expectedJsonValue = File.ReadAllText(TestingTools.GetPathToTestFile("TestData_SearchForTerms.json"));
+
+            // Verify that the service layer is called:
+            //  a) with the expected values.
+            //  b) exactly once.
+            termsQueryService.Verify(
+                svc => svc.Search("Dictionary", AudienceType.Patient, "EN", "Query", "contains",100,0, new string[] {"TermName","Pronunciation","Definition"}),
+                Times.Once
+            );
+
+            Assert.Equal(expectedJsonValue, actualJsonValue);
+        }                 
 
     }
 }

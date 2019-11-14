@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using System;
-
+using System.Collections.Generic;
 using NCI.OCPL.Api.Common;
 using NCI.OCPL.Api.Glossary;
 
@@ -18,7 +18,8 @@ namespace NCI.OCPL.Api.Glossary.Controllers
         /// <summary>
         /// Creates a new instance of a TermController with one argument.
         /// </summary>
-        public TermController(ITermQueryService termQueryService){
+        public TermController(ITermQueryService termQueryService)
+        {
             this._termQueryService = termQueryService;
         }
 
@@ -27,7 +28,8 @@ namespace NCI.OCPL.Api.Glossary.Controllers
         /// </summary>
         /// <returns>GlossaryTerm object</returns>
         [HttpGet("{dictionary}/{audience}/{language}/{id}")]
-        public GlossaryTerm GetById(string dictionary, AudienceType audience, string language, long id, [FromQuery] string[] requestedFields){
+        public GlossaryTerm GetById(string dictionary, AudienceType audience, string language, long id, [FromQuery] string[] requestedFields)
+        {
 
              if (String.IsNullOrWhiteSpace(dictionary) || String.IsNullOrWhiteSpace(language) || id <= 0){
                 throw new APIErrorException(400, "You must supply a valid dictionary, audience, language and id");
@@ -37,12 +39,13 @@ namespace NCI.OCPL.Api.Glossary.Controllers
                  requestedFields =  new string[] {};
              }
 
+            // if requestedFields is empty populate it with default values
              if(requestedFields.Length == 0){
                   requestedFields =  new string[]{"TermName","Pronunciation","Definition"};
              }
 
              return _termQueryService.GetById(dictionary,audience,language,id, requestedFields);
-        }
+        }    
     }
 
 }

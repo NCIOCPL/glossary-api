@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Collections.Generic;
 using Moq;
 using Xunit;
 using NCI.OCPL.Api.Glossary.Controllers;
@@ -82,7 +83,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
             .Returns(glossaryTerm);
 
             TermController controller = new TermController(termQueryService.Object);
-            GlossaryTerm gsTerm = controller.GetById("Dictionary", AudienceType.Patient, "EN", 10L, requestedFields);
+            GlossaryTerm gsTerm = controller.GetById("Dictionary", AudienceType.Patient, "EN", 1234L, requestedFields);
             string actualJsonValue = JsonConvert.SerializeObject(gsTerm);
             string expectedJsonValue = File.ReadAllText(TestingTools.GetPathToTestFile("TestData.json"));
 
@@ -90,7 +91,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
             //  a) with the expected values.
             //  b) exactly once.
             termQueryService.Verify(
-                svc => svc.GetById("Dictionary", AudienceType.Patient, "EN", 10L, new string[] {"TermName","Pronunciation","Definition"}),
+                svc => svc.GetById("Dictionary", AudienceType.Patient, "EN", 1234L, new string[] {"TermName","Pronunciation","Definition"}),
                 Times.Once
             );
 
@@ -128,7 +129,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
             .Returns(glossaryTerm);
 
             TermController controller = new TermController(termQueryService.Object);
-            GlossaryTerm gsTerm = controller.GetById("Dictionary", AudienceType.Patient, "EN", 10L, requestedFields);
+            GlossaryTerm gsTerm = controller.GetById("Dictionary", AudienceType.Patient, "EN", 1234L, requestedFields);
             string actualJsonValue = JsonConvert.SerializeObject(gsTerm);
             string expectedJsonValue = File.ReadAllText(TestingTools.GetPathToTestFile("TestData.json"));
 
@@ -136,11 +137,11 @@ namespace NCI.OCPL.Api.Glossary.Tests
             //  a) with the expected values.
             //  b) exactly once.
             termQueryService.Verify(
-                svc => svc.GetById("Dictionary", AudienceType.Patient, "EN", 10L, new string[] {"TermName","Pronunciation","Definition"}),
+                svc => svc.GetById("Dictionary", AudienceType.Patient, "EN", 1234L, new string[] {"TermName","Pronunciation","Definition"}),
                 Times.Once
             );
 
             Assert.Equal(expectedJsonValue, actualJsonValue);
-        }
+        }                                                   
     }
 }

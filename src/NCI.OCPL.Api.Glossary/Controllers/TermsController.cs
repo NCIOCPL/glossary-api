@@ -76,6 +76,10 @@ namespace NCI.OCPL.Api.Glossary.Controllers
             {
                 throw new APIErrorException(400, "You must supply a valid dictionary, audience and language");
             }
+
+            if (language.ToLower() != "en" && language.ToLower() != "es")
+                throw new APIErrorException(404, "Unsupported Language. Please try either 'en' or 'es'");
+            
             AudienceType audienceType;
             if(!Enum.TryParse(audience,true,out audienceType)){
                     throw new APIErrorException(400, "'AudienceType' can  be 'Patient' or 'HealthProfessional' only");
@@ -100,6 +104,41 @@ namespace NCI.OCPL.Api.Glossary.Controllers
 
             List<GlossaryTerm> glossaryTermList = await _termsQueryService.Search(dictionary, audienceType, language, query, matchType, size, from, requestedFields);
             return glossaryTermList.ToArray();
-        }            
+        }
+
+        /// <summary>
+        /// Search for Terms based on the character passed
+        /// </summary>
+        /// <returns>An array GlossaryTerm objects</returns>   
+        [HttpGet("expand/{dictionary}/{audience}/{language}/{character}")]     
+        public async Task<GlossaryTerm[]> Expand(string dictionary, String audience, string language, string character,
+            [FromQuery] string matchType, [FromQuery] int size, [FromQuery] int from, [FromQuery] string[] requestedFields)
+        {
+            if (String.IsNullOrWhiteSpace(dictionary) || String.IsNullOrWhiteSpace(language) || String.IsNullOrWhiteSpace(audience))
+                throw new APIErrorException(400, "You must supply a valid dictionary, audience and language");
+
+            if (language.ToLower() != "en" && language.ToLower() != "es")
+                throw new APIErrorException(404, "Unsupported Language. Please try either 'en' or 'es'");
+
+            AudienceType audienceType;
+            if(!Enum.TryParse(audience,true,out audienceType))
+                    throw new APIErrorException(400, "'AudienceType' can  be 'Patient' or 'HealthProfessional' only");
+
+            if(null == matchType || ! ( matchType.Equals("begins",StringComparison.InvariantCultureIgnoreCase) || matchType.Equals("contains" ,StringComparison.InvariantCultureIgnoreCase)))
+                throw new APIErrorException(400, "'matchType' can only be 'begins' or 'contains'");
+
+            if(size <=0)
+                size = 100;
+
+            if(from < 0 )
+                from = 0;
+
+            if(null == requestedFields || requestedFields.Length == 0)
+                requestedFields =  new string[]{"TermName","Pronunciation","Definition"};
+
+            List<GlossaryTerm> glossaryTermList = await _termsQueryService.Expand(dictionary, audienceType, language, character, matchType, size, from, requestedFields);
+            return glossaryTermList.ToArray();
+
+        }                 
     }
 }

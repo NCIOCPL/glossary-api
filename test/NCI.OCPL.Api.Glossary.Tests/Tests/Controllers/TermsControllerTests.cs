@@ -237,7 +237,58 @@ namespace NCI.OCPL.Api.Glossary.Tests
             );
 
             Assert.Equal(expectedJsonValue, actualJsonValue);
-        }                 
+        }    
+
+        [Fact]
+        public async void ExpandTerms()
+        {
+            Mock<ITermsQueryService> termsQueryService = new Mock<ITermsQueryService>();
+            TermsController controller = new TermsController(termsQueryService.Object);
+            string[] requestedFields = new string[]{"TermName","Pronunciation","Definition"};
+            Pronounciation pronounciation = new Pronounciation("Pronounciation Key", "pronunciation");
+            Definition definition = new Definition("<html><h1>Definition</h1></html>", "Sample definition");
+            GlossaryTerm glossaryTerm = new GlossaryTerm
+            {
+                Id = 1234L,
+                Language = "EN",
+                Dictionary = "Dictionary",
+                Audience = AudienceType.Patient,
+                TermName = "TermName",
+                PrettyUrlName = "www.glossary-api.com",
+                Pronounciation = pronounciation,
+                Definition = definition,
+                RelatedResources = new RelatedResourceType [] {RelatedResourceType.Summary , RelatedResourceType.DrugSummary},
+            };
+            List<GlossaryTerm> glossaryTermList = new List<GlossaryTerm>();
+            glossaryTermList.Add(glossaryTerm);
+            termsQueryService.Setup(
+                termQSvc => termQSvc.Search(
+                    It.IsAny<string>(),
+                    It.IsAny<AudienceType>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<int>(),
+                    It.IsAny<int>(),
+                    It.IsAny<string[]>()
+                )
+            )
+            .Returns(Task.FromResult(glossaryTermList));
+
+            GlossaryTerm[] gsTerm = await controller.Search("Dictionary", "Patient", "EN", "Query", "contains",1,0,requestedFields );
+            string actualJsonValue = JsonConvert.SerializeObject(gsTerm);
+            string expectedJsonValue = File.ReadAllText(TestingTools.GetPathToTestFile("TestData_SearchForTerms.json"));
+
+            // Verify that the service layer is called:
+            //  a) with the expected values.
+            //  b) exactly once.
+            termsQueryService.Verify(
+                svc => svc.Search("Dictionary", AudienceType.Patient, "EN", "Query", "contains",1,0, new string[] {"TermName","Pronunciation","Definition"}),
+                Times.Once
+            );
+
+            Assert.Equal(expectedJsonValue, actualJsonValue);
+        }                         
 
     }
 }

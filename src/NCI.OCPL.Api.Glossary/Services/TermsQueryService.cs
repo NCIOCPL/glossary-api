@@ -113,7 +113,30 @@ namespace NCI.OCPL.Api.Glossary.Services
             glossaryTermList.Add(GenerateSampleTerm(requestedFields));
 
             return glossaryTermList;
-        }     
+        }    
+
+
+        /// <summary>
+        /// Search for Terms based on the search criteria.
+        /// <param name="dictionary">The value for dictionary.</param>
+        /// <param name="audience">Patient or Healthcare provider</param>
+        /// <param name="language">The language in which the details needs to be fetched</param>
+        /// <param name="query">The search query</param>
+        /// <param name="matchType">Defines if the search should begin with or contain the key word</param>
+        /// <param name="size">Defines the size of the search</param>
+        /// <param name="from">Defines the Offset for search</param>
+        /// <param name="requestedFields"> The list of fields that needs to be sent in the response</param>
+        /// <returns>A list of GlossaryTerm</returns>        
+        /// </summary>
+        public async Task<List<GlossaryTerm>> Expand(string dictionary, AudienceType audience, string language, string query,string matchType, int size, int from, string[] requestedFields)
+        {
+            // Temporary Solution till we have Elastic Search
+            List<GlossaryTerm> glossaryTermList = new List<GlossaryTerm>();
+            glossaryTermList.Add(GenerateSampleTerm(requestedFields));
+            glossaryTermList.Add(GenerateSampleTerm(requestedFields));
+
+            return glossaryTermList;
+        }            
 
        /// <summary>
         /// This temporary method will create a GlossaryTerm
@@ -124,16 +147,14 @@ namespace NCI.OCPL.Api.Glossary.Services
             GlossaryTerm _GlossaryTerm = new GlossaryTerm();
             Pronounciation pronounciation = new Pronounciation("Pronounciation Key", "pronunciation");
             Definition definition = new Definition("<html><h1>Definition</h1></html>", "Sample definition");
-            if(null==requestedFields || requestedFields.Length == 0){
-                _GlossaryTerm.Id = 10L;
-                _GlossaryTerm.Language = "EN";
-                _GlossaryTerm.Dictionary = "Dictionary";
-                _GlossaryTerm.Audience = AudienceType.Patient;
-                _GlossaryTerm.TermName = "TermName";
-                _GlossaryTerm.PrettyUrlName = "www.glossary-api.com";
-                _GlossaryTerm.Pronounciation = pronounciation;
-                _GlossaryTerm.Definition = definition;
-            }
+            _GlossaryTerm.Id = 7890L;
+            _GlossaryTerm.Language = "EN";
+            _GlossaryTerm.Dictionary = "Dictionary";
+            _GlossaryTerm.Audience = AudienceType.Patient;
+            _GlossaryTerm.TermName = "TermName";
+            _GlossaryTerm.PrettyUrlName = "www.glossary-api.com";
+            _GlossaryTerm.Pronounciation = pronounciation;
+            _GlossaryTerm.Definition = definition;
             foreach (string field in requestedFields)
             {
                 if(field.Equals("Id")){

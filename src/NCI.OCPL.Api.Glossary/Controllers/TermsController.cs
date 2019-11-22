@@ -69,7 +69,7 @@ namespace NCI.OCPL.Api.Glossary.Controllers
         /// </summary>
         /// <returns>An array GlossaryTerm objects</returns>   
         [HttpGet("search/{dictionary}/{audience}/{language}/{query}")]     
-        public async Task<GlossaryTerm[]> Search(string dictionary, String audience, string language, string query,
+        public async Task<GlossaryTerm[]> Search(string dictionary, string audience, string language, string query,
             [FromQuery] string matchType, [FromQuery] int size, [FromQuery] int from, [FromQuery] string[] requestedFields)
         {
             if (String.IsNullOrWhiteSpace(dictionary) || String.IsNullOrWhiteSpace(language) || String.IsNullOrWhiteSpace(audience))

@@ -115,7 +115,7 @@ namespace NCI.OCPL.Api.Glossary.Services
             return glossaryTermList;
         }     
 
-       /// <summary>
+        /// <summary>
         /// This temporary method will create a GlossaryTerm
         /// object to testing purpose.
         /// </summary>

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NCI.OCPL.Api.Common;
+using NCI.OCPL.Api.Glossary.Models;
 using NCI.OCPL.Api.Glossary.Services;
 
 namespace NCI.OCPL.Api.Glossary
@@ -43,6 +44,7 @@ namespace NCI.OCPL.Api.Glossary
             //Add our Term Query Service
             services.AddTransient<ITermQueryService, TermQueryService>();
             services.AddTransient<ITermsQueryService, TermsQueryService>();
+            services.Configure<GlossaryAPIOptions>(Configuration.GetSection("GlossaryAPI"));
         }
 
         /*****************************

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using NCI.OCPL.Api.Common;
 using NCI.OCPL.Api.Glossary;
+using System.Threading.Tasks;
 
 namespace NCI.OCPL.Api.Glossary.Controllers
 {
@@ -28,7 +29,7 @@ namespace NCI.OCPL.Api.Glossary.Controllers
         /// </summary>
         /// <returns>GlossaryTerm object</returns>
         [HttpGet("{dictionary}/{audience}/{language}/{id}")]
-        public GlossaryTerm GetById(string dictionary, AudienceType audience, string language, long id, [FromQuery] string[] requestedFields)
+        public Task<GlossaryTerm> GetById(string dictionary, AudienceType audience, string language, long id, [FromQuery] string[] requestedFields)
         {
 
              if (String.IsNullOrWhiteSpace(dictionary) || String.IsNullOrWhiteSpace(language) || id <= 0){

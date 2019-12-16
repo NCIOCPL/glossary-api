@@ -10,6 +10,10 @@ using NCI.OCPL.Api.Glossary.Services;
 using NCI.OCPL.Api.Common.Testing;
 using Nest;
 using NCI.OCPL.Api.Common;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using NCI.OCPL.Api.Glossary.Models;
 
 namespace NCI.OCPL.Api.Glossary.Tests
 {
@@ -29,31 +33,31 @@ namespace NCI.OCPL.Api.Glossary.Tests
         }
 
         [Fact]
-        public void GetById_ErrorMessage_Dictionary(){
+        public async void GetById_ErrorMessage_Dictionary(){
             Mock<ITermQueryService> termQueryService = new Mock<ITermQueryService>();
             TermController controller = new TermController(termQueryService.Object);
-            var exception = Assert.Throws<APIErrorException>(() => controller.GetById("", AudienceType.Patient, "EN", 10L, new string[]{}));
+            var exception = await Assert.ThrowsAsync<APIErrorException>(() => controller.GetById("", AudienceType.Patient, "EN", 10L, new string[]{}));
             Assert.Equal("You must supply a valid dictionary, audience, language and id", exception.Message);
         }
 
         [Fact]
-        public void GetById_ErrorMessage_Languate(){
+        public async void GetById_ErrorMessage_Languate(){
             Mock<ITermQueryService> termQueryService = new Mock<ITermQueryService>();
             TermController controller = new TermController(termQueryService.Object);
-            var exception = Assert.Throws<APIErrorException>(() => controller.GetById("Dictionary", AudienceType.Patient, "", 10L, new string[]{}));
+            var exception = await Assert.ThrowsAsync<APIErrorException>(() => controller.GetById("Dictionary", AudienceType.Patient, "", 10L, new string[]{}));
             Assert.Equal("You must supply a valid dictionary, audience, language and id", exception.Message);
         }
 
         [Fact]
-        public void GetById_ErrorMessage_Id(){
+        public async void GetById_ErrorMessage_Id(){
             Mock<ITermQueryService> termQueryService = new Mock<ITermQueryService>();
             TermController controller = new TermController(termQueryService.Object);
-            var exception = Assert.Throws<APIErrorException>(() => controller.GetById("Dictionary", AudienceType.Patient, "EN", 0L, new string[]{}));
+            var exception = await Assert.ThrowsAsync<APIErrorException>(() => controller.GetById("Dictionary", AudienceType.Patient, "EN", 0L, new string[]{}));
             Assert.Equal("You must supply a valid dictionary, audience, language and id", exception.Message);
         }
 
         [Fact]
-        public void GetById()
+        public async void GetById()
         {
             Mock<ITermQueryService> termQueryService = new Mock<ITermQueryService>();
             string[] requestedFields = {"TermName","Pronunciation","Definition"};
@@ -80,16 +84,16 @@ namespace NCI.OCPL.Api.Glossary.Tests
                     It.IsAny<string[]>()
                 )
             )
-            .Returns(glossaryTerm);
+            .Returns(Task.FromResult(glossaryTerm));
 
             TermController controller = new TermController(termQueryService.Object);
-            GlossaryTerm gsTerm = controller.GetById("Dictionary", AudienceType.Patient, "EN", 1234L, requestedFields);
+            GlossaryTerm gsTerm = await controller.GetById("Dictionary", AudienceType.Patient, "EN", 1234L, requestedFields);
             string actualJsonValue = JsonConvert.SerializeObject(gsTerm);
             string expectedJsonValue = File.ReadAllText(TestingTools.GetPathToTestFile("TestData.json"));
 
             // Verify that the service layer is called:
-            //  a) with the expected values.
-            //  b) exactly once.
+            // a) with the expected values.
+            // b) exactly once.
             termQueryService.Verify(
                 svc => svc.GetById("Dictionary", AudienceType.Patient, "EN", 1234L, new string[] {"TermName","Pronunciation","Definition"}),
                 Times.Once
@@ -99,7 +103,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         }
 
         [Fact]
-        public void GetById_BlankRequiredFields()
+        public async void GetById_BlankRequiredFields()
         {
             Mock<ITermQueryService> termQueryService = new Mock<ITermQueryService>();
             string[] requestedFields = new string[]{};
@@ -117,6 +121,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
                 Definition = definition,
                 RelatedResources = new RelatedResourceType [] {RelatedResourceType.Summary , RelatedResourceType.DrugSummary},
             };
+
             termQueryService.Setup(
                 termQSvc => termQSvc.GetById(
                     It.IsAny<String>(),
@@ -126,10 +131,10 @@ namespace NCI.OCPL.Api.Glossary.Tests
                     It.IsAny<string[]>()
                 )
             )
-            .Returns(glossaryTerm);
+            .Returns(Task.FromResult(glossaryTerm));
 
             TermController controller = new TermController(termQueryService.Object);
-            GlossaryTerm gsTerm = controller.GetById("Dictionary", AudienceType.Patient, "EN", 1234L, requestedFields);
+            GlossaryTerm gsTerm = await controller.GetById("Dictionary", AudienceType.Patient, "EN", 1234L, requestedFields);
             string actualJsonValue = JsonConvert.SerializeObject(gsTerm);
             string expectedJsonValue = File.ReadAllText(TestingTools.GetPathToTestFile("TestData.json"));
 

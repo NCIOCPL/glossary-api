@@ -42,7 +42,7 @@ namespace NCI.OCPL.Api.Glossary
         protected override void AddAppServices(IServiceCollection services)
         {
             //Add our Term Query Service
-            services.AddTransient<ITermQueryService, TermQueryService>();
+            services.AddTransient<ITermQueryService, ESTermQueryService>();
             services.AddTransient<ITermsQueryService, TermsQueryService>();
             services.Configure<GlossaryAPIOptions>(Configuration.GetSection("GlossaryAPI"));
         }

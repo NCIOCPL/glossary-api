@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace NCI.OCPL.Api.Glossary
 {
     /// <summary>
@@ -14,6 +16,6 @@ namespace NCI.OCPL.Api.Glossary
         /// <param name="requestedFields"> The list of fields that needs to be sent in the response</param>
         /// <returns>An object of GlossaryTerm</returns>        
         /// </summary>
-        GlossaryTerm GetById(string dictionary, AudienceType audience, string language, long id, string[] requestedFields);
+        Task<GlossaryTerm> GetById(string dictionary, AudienceType audience, string language, long id, string[] requestedFields);
     }
 }

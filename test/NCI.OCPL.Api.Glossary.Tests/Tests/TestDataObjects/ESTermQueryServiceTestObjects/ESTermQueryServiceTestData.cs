@@ -8,7 +8,7 @@ namespace NCI.OCPL.Api.BestBets.Tests.ESTermQueryTestData
         public override string TestFilePath => "TermQuery.json";
         public override GlossaryTerm ExpectedData => new GlossaryTerm()
         {
-                Id = 0L,
+                Id = 43966L,
                 Language = "en",
                 Dictionary = "cancer.gov",
                 Audience = AudienceType.Patient,

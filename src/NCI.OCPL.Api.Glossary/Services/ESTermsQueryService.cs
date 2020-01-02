@@ -1,6 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using NCI.OCPL.Api.Common;
+using NCI.OCPL.Api.Glossary.Models;
 using Nest;
 
 namespace NCI.OCPL.Api.Glossary.Services
@@ -10,17 +14,32 @@ namespace NCI.OCPL.Api.Glossary.Services
     /// Elasticsearch implementation of the service for retrieveing multiple
     /// GlossaryTerm objects.
     /// </summary>
-    public class TermsQueryService : ITermsQueryService
+    public class ESTermsQueryService : ITermsQueryService
     {
-
+        /// <summary>
+        /// The elasticsearch client
+        /// </summary>
         private IElasticClient _elasticClient;
+
+        /// <summary>
+        /// The API options.
+        /// </summary>
+        protected readonly GlossaryAPIOptions _apiOptions;
+
+        /// <summary>
+        /// A logger to use for logging
+        /// </summary>
+        private readonly ILogger<ESTermsQueryService> _logger;
 
         /// <summary>
         /// Constructor.
         /// </summary>
-        public TermsQueryService(IElasticClient client)
+        public ESTermsQueryService(IElasticClient client,IOptions<GlossaryAPIOptions> apiOptionsAccessor,
+            ILogger<ESTermsQueryService> logger)
         {
             _elasticClient = client;
+            _apiOptions = apiOptionsAccessor.Value;
+            _logger = logger;
         }
 
         /// <summary>
@@ -128,15 +147,102 @@ namespace NCI.OCPL.Api.Glossary.Services
         /// <param name="requestedFields"> The list of fields that needs to be sent in the response</param>
         /// <returns>A list of GlossaryTerm</returns>        
         /// </summary>
-        public async Task<List<GlossaryTerm>> Expand(string dictionary, AudienceType audience, string language, string query,string matchType, int size, int from, string[] requestedFields)
+        // public async Task<List<GlossaryTerm>> Expand(string dictionary, AudienceType audience, string language, string query,string matchType, int size, int from, string[] requestedFields)
+        // {
+        //     // Temporary Solution till we have Elastic Search
+        //     List<GlossaryTerm> glossaryTermList = new List<GlossaryTerm>();
+        //     glossaryTermList.Add(GenerateSampleTerm(requestedFields));
+        //     glossaryTermList.Add(GenerateSampleTerm(requestedFields));
+
+        //     return glossaryTermList;
+        // }    
+
+        /// <summary>
+        /// Search for Terms based on the search criteria.
+        /// <param name="dictionary">The value for dictionary.</param>
+        /// <param name="audience">Patient or Healthcare provider</param>
+        /// <param name="language">The language in which the details needs to be fetched</param>
+        /// <param name="query">The search query</param>
+        /// <param name="matchType">Defines if the search should begin with or contain the key word</param>
+        /// <param name="size">Defines the size of the search</param>
+        /// <param name="from">Defines the Offset for search</param>
+        /// <param name="requestedFields"> The list of fields that needs to be sent in the response</param>
+        /// <returns>A list of GlossaryTerm</returns>
+        /// </summary>
+        public async Task<List<GlossaryTerm>> Expand(string dictionary, AudienceType audience, string language, string query, string matchType, int size, int from, string[] requestedFields)
         {
-            // Temporary Solution till we have Elastic Search
+            // Set up the SearchRequest to send to elasticsearch.
+            Indices index = Indices.Index(new string[] { this._apiOptions.AliasName});
+            Types types = Types.Type(new string[] { "terms" });
+            SearchRequest request = new SearchRequest(index, types)
+            {
+                Query = new BoolQuery
+                {
+                    Must = new QueryContainer[] 
+                    {
+                        new TermQuery {Field = "language", Value = language.ToString()} &&
+                        new TermQuery {Field = "audience", Value = audience.ToString()} &&
+                        new TermQuery {Field = "dictionary", Value = dictionary.ToString()} &&
+                        new TermQuery {Field = "first_letter", Value = query.ToString()}
+                    }
+                },
+                Sort = new List<ISort>
+                {
+                    new SortField { Field = "term_name" }
+                },
+                Size = size,
+                From = from,
+                // Source = new SourceFilter
+                // {
+                //     Includes = requestedFields
+                // },             
+            };
+
+            // The below 3 lines of code help to debug the query that is used for ES.
+            // Delete this 3 lines after code starts working.
+            var stream = new System.IO.MemoryStream();
+            _elasticClient.Serializer.Serialize(request, stream );
+            var jsonQuery = System.Text.Encoding.UTF8.GetString(stream.ToArray());
+            // End of Debug code
+
+            ISearchResponse<GlossaryTerm> response = null;
+            try
+            {
+                response = await _elasticClient.SearchAsync<GlossaryTerm>(request);
+            }
+            catch (Exception ex)
+            {
+                String msg = String.Format("Could not search dictionary '{0}', audience '{1}', language '{2}', query '{3}', matchType '{4}', size '{5}', from '{6}'.", dictionary, audience, language, query, matchType, size, from);
+                _logger.LogError(msg, ex);
+                throw new APIErrorException(500, msg);
+            }
+
+            if(!response.IsValid)
+            {
+                String msg = String.Format("Invalid response when searching for dictionary '{0}', audience '{1}', language '{2}', query '{3}', matchType '{4}', size '{5}', from '{6}'.", dictionary, audience, language, query, matchType, size, from);
+                _logger.LogError(msg);
+                throw new APIErrorException(500, "errors occured");
+            }
+            // If ES returns terms matching the params, return them.
+            // List<GlossaryTerm> glossaryTermList = new List<GlossaryTerm>();
+            // if (response.Total > 0)
+            // {
+            //     foreach(GlossaryTerm term in response.Documents)
+            // }
+
+            // return glossaryTermList;
             List<GlossaryTerm> glossaryTermList = new List<GlossaryTerm>();
-            glossaryTermList.Add(GenerateSampleTerm(requestedFields));
-            glossaryTermList.Add(GenerateSampleTerm(requestedFields));
+            foreach(GlossaryTerm gt in response.Documents)
+            {
+                glossaryTermList.Add(gt);
+            }
+            // Temporary Solution till we have Elastic Search
+            // List<GlossaryTerm> glossaryTermList = new List<GlossaryTerm>();
+            // glossaryTermList.Add(GenerateSampleTerm(requestedFields));
+            // glossaryTermList.Add(GenerateSampleTerm(requestedFields));
 
             return glossaryTermList;
-        }            
+        }                
 
         /// <summary>
         /// This temporary method will create a GlossaryTerm

@@ -3,12 +3,12 @@ using System;
 namespace NCI.OCPL.Api.Glossary
 {
     /// <summary>
-    ///
+    /// Metalink
     /// </summary>
     public class Metalink
     {
         /// <summary>
-        /// Link
+        /// url
         /// </summary>
         public Uri Self;
     }

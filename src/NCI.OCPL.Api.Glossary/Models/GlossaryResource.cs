@@ -1,3 +1,7 @@
+using Nest;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+
 namespace NCI.OCPL.Api.Glossary
 {
     /// <summary>
@@ -9,6 +13,7 @@ namespace NCI.OCPL.Api.Glossary
         /// Notes the related resource type.
         /// </summary>
         /// <value>Always RelatedResourceType.GlossaryTerm</value>
+        [JsonConverter(typeof(StringEnumConverter))]
         public RelatedResourceType Type { get; set; }
 
         /// <summary>
@@ -29,6 +34,7 @@ namespace NCI.OCPL.Api.Glossary
         /// "Cancer.gov" for the Dictionary of Cancer Terms.
         /// "genetic" for the Dictionary of Genetics Terms.
         /// </value>
+        [Keyword(Name = "dictionary")]
         public string Dictionary{ get; set; }
 
         /// <summary>
@@ -38,12 +44,14 @@ namespace NCI.OCPL.Api.Glossary
         /// healthprofessional - Doctors and other health professionals.
         /// patient - Patients, friends, and family members.
         /// </value>
-        public string Audience{ get; set; }
+        [JsonConverter(typeof(StringEnumConverter))]
+        public AudienceType Audience{ get; set; }
 
         /// <summary>
         /// If available, the term's human readable name, rendered in a URL-friendly format.
         /// </summary>
         /// <value>Empty string if no human-readable name is available.</value>
+        [Keyword(Name = "pretty_url_name")]
         public string PrettyUrlName{ get; set; }
     }
 }

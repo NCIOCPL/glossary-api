@@ -61,7 +61,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         {
             Mock<ITermQueryService> termQueryService = new Mock<ITermQueryService>();
             string[] requestedFields = {"TermName","Pronunciation","Definition"};
-            Pronounciation pronounciation = new Pronounciation("Pronounciation Key", "pronunciation");
+            Pronunciation pronunciation = new Pronunciation("Pronunciation Key", "pronunciation");
             Definition definition = new Definition("<html><h1>Definition</h1></html>", "Sample definition");
             GlossaryTerm glossaryTerm = new GlossaryTerm
             {
@@ -71,7 +71,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
                 Audience = AudienceType.Patient,
                 TermName = "TermName",
                 PrettyUrlName = "www.glossary-api.com",
-                Pronounciation = pronounciation,
+                Pronunciation = pronunciation,
                 Definition = definition,
                 RelatedResources =  new IRelatedResource[] {
                     new LinkResource()
@@ -98,7 +98,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
                         Text = "stage II cutaneous T-cell lymphoma",
                         Id = 43966,
                         Dictionary = "Cancer.gov",
-                        Audience = "Patient",
+                        Audience = AudienceType.Patient,
                         PrettyUrlName = "stage-ii-cutaneous-t-cell-lymphoma"
                     }
                 }
@@ -135,7 +135,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         {
             Mock<ITermQueryService> termQueryService = new Mock<ITermQueryService>();
             string[] requestedFields = new string[]{};
-            Pronounciation pronounciation = new Pronounciation("Pronounciation Key", "pronunciation");
+            Pronunciation pronunciation = new Pronunciation("Pronunciation Key", "pronunciation");
             Definition definition = new Definition("<html><h1>Definition</h1></html>", "Sample definition");
             GlossaryTerm glossaryTerm = new GlossaryTerm
             {
@@ -145,7 +145,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
                 Audience = AudienceType.Patient,
                 TermName = "TermName",
                 PrettyUrlName = "www.glossary-api.com",
-                Pronounciation = pronounciation,
+                Pronunciation = pronunciation,
                 Definition = definition,
                 RelatedResources = new IRelatedResource[] {
                     new LinkResource()
@@ -172,7 +172,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
                         Text = "stage II cutaneous T-cell lymphoma",
                         Id = 43966,
                         Dictionary = "Cancer.gov",
-                        Audience = "Patient",
+                        Audience = AudienceType.Patient,
                         PrettyUrlName = "stage-ii-cutaneous-t-cell-lymphoma"
                     }
                 }

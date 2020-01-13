@@ -1,4 +1,6 @@
 using Nest;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 
 namespace NCI.OCPL.Api.Glossary
 {
@@ -31,6 +33,7 @@ namespace NCI.OCPL.Api.Glossary
         /// Gets or sets the AudienceType for the Glosary Term
         /// </summary>
         [Nested(Name = "audience")]
+        [JsonConverter(typeof(StringEnumConverter))]
         public AudienceType Audience { get; set; }
 
         /// <summary>
@@ -46,10 +49,10 @@ namespace NCI.OCPL.Api.Glossary
         public string  PrettyUrlName { get; set; }
 
         /// <summary>
-        /// Gets or sets the pronounciation for the Glosary Term
+        /// Gets or sets the pronunciation for the Glosary Term
         /// </summary>
-        [Nested(Name = "pronounciation")]
-        public Pronounciation Pronounciation  { get; set; }
+        [Nested(Name = "pronunciation")]
+        public Pronunciation Pronunciation  { get; set; }
 
         /// <summary>
         /// Gets or sets the Definition for the Glosary Term
@@ -61,13 +64,15 @@ namespace NCI.OCPL.Api.Glossary
         /// Gets or sets the Definition for the Glosary Term
         /// </summary>
         [Nested(Name = "related_resources")]
-        public IRelatedResource[] RelatedResources  { get; set; }
+        [JsonProperty(ItemConverterType = typeof(RelatedResourceJsonConverter))]
+        public IRelatedResource[] RelatedResources  { get; set; } = new IRelatedResource[] { };
 
         /// <summary>
         /// Gets or sets the Definition for the Glosary Term
         /// </summary>
         [Nested(Name = "media")]
-        public IMedia[] Media  { get; set; }
+        [JsonProperty(ItemConverterType = typeof(MediaJsonConverter))]
+        public IMedia[] Media  { get; set; } = new IMedia[] { };
 
         /// <summary>
         /// no arg constructor

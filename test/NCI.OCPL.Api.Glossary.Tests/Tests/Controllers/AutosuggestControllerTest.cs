@@ -53,7 +53,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
             Mock<IAutosuggestQueryService> querySvc = new Mock<IAutosuggestQueryService>();
             AutosuggestController controller = new AutosuggestController(querySvc.Object);
             string[] requestedFields = new string[]{"TermName","Pronunciation","Definition"};
-            Pronounciation pronounciation = new Pronounciation("Pronounciation Key", "pronunciation");
+            Pronunciation pronunciation = new Pronunciation("Pronunciation Key", "pronunciation");
             Definition definition = new Definition("<html><h1>Definition</h1></html>", "Sample definition");
             GlossaryTerm glossaryTerm = new GlossaryTerm
             {
@@ -63,7 +63,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
                 Audience = AudienceType.Patient,
                 TermName = "TermName",
                 PrettyUrlName = "www.glossary-api.com",
-                Pronounciation = pronounciation,
+                Pronunciation = pronunciation,
                 Definition = definition,
                 RelatedResources = new IRelatedResource[] {
                     new LinkResource()
@@ -90,7 +90,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
                         Text = "stage II cutaneous T-cell lymphoma",
                         Id = 43966,
                         Dictionary = "Cancer.gov",
-                        Audience = "Patient",
+                        Audience = AudienceType.Patient,
                         PrettyUrlName = "stage-ii-cutaneous-t-cell-lymphoma"
                     }
                 }
@@ -108,7 +108,9 @@ namespace NCI.OCPL.Api.Glossary.Tests
             .Returns(Task.FromResult(glossaryTermList));
 
             GlossaryTerm[] gsTerm = await controller.getSuggestions("Dictionary", "Patient", "EN", "Query");
-            string actualJsonValue = JsonConvert.SerializeObject(gsTerm);
+            string actualJsonValue = JsonConvert.SerializeObject(
+                gsTerm
+            );
             string expectedJsonValue = File.ReadAllText(TestingTools.GetPathToTestFile("TestData_SearchForTerms.json"));
 
             // Verify that the service layer is called:

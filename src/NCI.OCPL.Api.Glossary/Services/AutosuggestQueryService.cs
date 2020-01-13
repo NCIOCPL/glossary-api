@@ -46,7 +46,7 @@ namespace NCI.OCPL.Api.Glossary.Services
         /// <returns>The GlossaryTerm</returns>
         private GlossaryTerm GenerateSampleTerm(){
             GlossaryTerm _GlossaryTerm = new GlossaryTerm();
-            Pronounciation pronounciation = new Pronounciation("Pronounciation Key", "pronunciation");
+            Pronunciation pronunciation = new Pronunciation("Pronunciation Key", "pronunciation");
             Definition definition = new Definition("<html><h1>Definition</h1></html>", "Sample definition");
             _GlossaryTerm.Id = 7890L;
             _GlossaryTerm.Language = "EN";
@@ -54,7 +54,7 @@ namespace NCI.OCPL.Api.Glossary.Services
             _GlossaryTerm.Audience = AudienceType.Patient;
             _GlossaryTerm.TermName = "TermName";
             _GlossaryTerm.PrettyUrlName = "www.glossary-api.com";
-            _GlossaryTerm.Pronounciation = pronounciation;
+            _GlossaryTerm.Pronunciation = pronunciation;
             _GlossaryTerm.Definition = definition;
             _GlossaryTerm.RelatedResources = new IRelatedResource[] {
                 new LinkResource()
@@ -81,7 +81,7 @@ namespace NCI.OCPL.Api.Glossary.Services
                     Text = "stage II cutaneous T-cell lymphoma",
                     Id = 43966,
                     Dictionary = "Cancer.gov",
-                    Audience = "Patient",
+                    Audience = AudienceType.Patient,
                     PrettyUrlName = "stage-ii-cutaneous-t-cell-lymphoma"
                 }
             };

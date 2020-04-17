@@ -14,22 +14,21 @@ on:
   ## Any pull request. Yes the syntax looks weird
   pull_request:
 jobs:
-  run:
-    name: Dotnet ${{ matrix.dotnet }} on OS ${{ matrix.operating-system }}
+  test_build_release:
+    name: Test, Build, Publish on OS ${{ matrix.operating-system }}
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macOS-latest]
+    steps:
+      - uses: actions/checkout@master
         ## using latest LTS releases - also it MUST be the SDK version,
         ## which have stupidly high numbers for the patch version.
         ## '3.1.100' breaks our app, so let's just use 2.x
-        dotnet: [ '2.1.607' ]
-    steps:
-      - uses: actions/checkout@master
       - name: Setup dotnet
         uses: actions/setup-dotnet@v1
         with:
-          dotnet-version: ${{ matrix.dotnet }}
+          dotnet-version: '2.1.607'
       - name: Build with dotnet
         run: dotnet build --configuration Release /WarnAsError
       - name: Unit Tests (with Coverage)
@@ -46,3 +45,83 @@ jobs:
           name: coverage-${{ matrix.operating-system }}
           path: lcov.info
         if: matrix.operating-system != 'windows-latest'
+      - name: Publish
+        run: dotnet publish -c Release -o $GITHUB_WORKSPACE/out
+        shell: bash
+      - name: Upload Published Artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: glossary-api-${{ matrix.operating-system }}
+          path: out
+  integration_tests:
+    name: Run Integration Tests (on Linux)
+    runs-on: ubuntu-latest
+    needs: test_build_release
+    services:
+      elasticsearch:
+        image: elasticsearch:5.6.16
+        ports:
+          ## NOTE: This will be exposed as a random port referenced below by job.services.elasticsearch.ports[9200]
+          - 9200/tcp
+        options: --health-cmd="curl http://localhost:9200/_cluster/health" --health-interval=10s --health-timeout=5s --health-retries=10
+
+    steps:
+      - uses: actions/checkout@master
+      - name: Download Published Artifact
+        uses: actions/download-artifact@v1
+        with:
+          name: glossary-api-ubuntu-latest
+          path: built-api
+        ## using latest LTS releases - also it MUST be the SDK version,
+        ## which have stupidly high numbers for the patch version.
+        ## '3.1.100' breaks our app, so let's just use 2.x
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '2.1.607'
+      - name: Load Data into elasticsearch
+        env:
+          ELASTIC_SEARCH_HOST: http://localhost:${{ job.services.elasticsearch.ports[9200] }}
+        run: |
+              ./integration-tests/bin/load-integration-data.sh
+      - name: Start up api
+        env:
+          Elasticsearch__Servers: http://localhost:${{ job.services.elasticsearch.ports[9200] }}
+        run: |
+              ## Start the app
+              dotnet ./built-api/NCI.OCPL.Api.Glossary.Tests.dll &
+            set -x
+            url='http://localhost:5000'
+            attempts=5
+            timeout=5
+            online=false
+
+            echo "Checking status of $url."
+
+            for (( i=1; i<=$attempts; i++ ))
+            do
+                code=`curl -sL --connect-timeout 20 --max-time 30 --fail -w "%{http_code}\\n" "$url" -o /dev/null`
+
+                echo "Found code ${code} for ${url}."
+
+                if [ "$code" = "200" ]; then
+                    echo "Website $url is online."
+                    online=true
+                    break
+                else
+                    echo "Website $url seems to be offline. Waiting $timeout seconds."
+                    sleep $timeout
+                fi
+            done
+
+            if $online; then
+                echo "Monitor finished, website is online."
+                exit 0
+            else
+                echo "Monitor failed, website seems to be down."
+                exit 1
+            fi
+
+      - name: Test steps
+        run: |
+            curl http://localhost:5000/

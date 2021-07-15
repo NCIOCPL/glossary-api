@@ -1,8 +1,12 @@
+using System.Text.Json.Serialization;
+
 namespace NCI.OCPL.Api.Glossary
 {
     /// <summary>
     /// RelatedResourceType enum
     /// </summary>
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [Newtonsoft.Json.JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
     public enum RelatedResourceType
     {
         /// <summary>

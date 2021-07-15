@@ -3,8 +3,8 @@ Feature: GetByName with useFallback=true with expected success.
     Background:
         * url apiHost
 
-    Scenario Outline: Given the dictionary, audience, language, prettyUrlName, and useFallback = true,
-        validate the query result.
+    Scenario Outline: Given the dictionary, audience, language, prettyUrlName, and useFallback = true, validate the query result.
+        for dictionary '<dictionary>', audience '<audience>', language '<language>', prettyUrlName '<prettyUrlName>'
 
         Given path 'Terms', dictionary, audience, language, prettyUrlName
         And param useFallback = true

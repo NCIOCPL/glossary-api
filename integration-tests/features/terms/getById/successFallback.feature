@@ -3,8 +3,8 @@ Feature: GetById with useFallback=true with expected success.
     Background:
         * url apiHost
 
-    Scenario Outline: Given the dictionary, audience, language, ID, and useFallback = true,
-        validate the query result.
+    Scenario Outline: Given the dictionary, audience, language, ID, and useFallback = true, validate the query result.
+        for dictionary '<dictionary>', audience '<audience>', language '<language>', id '<id>'
 
         Given path 'Terms', dictionary, audience, language, id
         And param useFallback = true

@@ -1,6 +1,8 @@
+using System.Text.Json.Serialization;
+
 using Nest;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+
+using NCI.OCPL.Api.Common;
 
 namespace NCI.OCPL.Api.Glossary
 {
@@ -33,7 +35,7 @@ namespace NCI.OCPL.Api.Glossary
         /// Gets or sets the AudienceType for the Glosary Term
         /// </summary>
         [Nested(Name = "audience")]
-        [JsonConverter(typeof(StringEnumConverter))]
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public AudienceType Audience { get; set; }
 
         /// <summary>
@@ -76,14 +78,16 @@ namespace NCI.OCPL.Api.Glossary
         /// Gets or sets the Definition for the Glosary Term
         /// </summary>
         [Nested(Name = "related_resources")]
-        [JsonProperty(ItemConverterType = typeof(RelatedResourceJsonConverter))]
+        [Newtonsoft.Json.JsonProperty(ItemConverterType = typeof(RelatedResourceJsonConverter))]
+        [JsonConverter(typeof(InterfaceJsonConverter<IRelatedResource[]>))]
         public IRelatedResource[] RelatedResources  { get; set; } = new IRelatedResource[] { };
 
         /// <summary>
         /// Gets or sets the Definition for the Glosary Term
         /// </summary>
         [Nested(Name = "media")]
-        [JsonProperty(ItemConverterType = typeof(MediaJsonConverter))]
+        [Newtonsoft.Json.JsonProperty(ItemConverterType = typeof(MediaJsonConverter))]
+        [JsonConverter(typeof(InterfaceJsonConverter<IMedia[]>))]
         public IMedia[] Media  { get; set; } = new IMedia[] { };
 
         /// <summary>

@@ -3,6 +3,7 @@ namespace NCI.OCPL.Api.Glossary
     /// <summary>
     /// MediaType enum
     /// </summary>
+    [Newtonsoft.Json.JsonConverter(typeof(Newtonsoft.Json.Converters.StringEnumConverter))]
     public enum MediaType
     {
         /// <summary>

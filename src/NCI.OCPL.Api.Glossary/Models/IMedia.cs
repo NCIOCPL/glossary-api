@@ -1,3 +1,5 @@
+using NCI.OCPL.Api.Common;
+
 namespace NCI.OCPL.Api.Glossary
 {
     /// <summary>

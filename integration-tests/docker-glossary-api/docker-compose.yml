@@ -8,6 +8,7 @@ services:
         environment:
             - discovery.type=single-node
             - ES_JAVA_OPTS=-Xms750m -Xmx750m
+            - http.publish_host=localhost
         ## These exposed ports are for debugging only. .NET +
         ## Docker + MacOS == bad scene. (.NET always wants to
         ## use the hosts name, and on a mac that is actually

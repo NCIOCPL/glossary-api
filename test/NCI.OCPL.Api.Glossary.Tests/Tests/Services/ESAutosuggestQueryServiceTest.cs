@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using Elasticsearch.Net;
 using Moq;
 using Nest;
+using Nest.JsonNetSerializer;
 using Newtonsoft.Json.Linq;
 using Xunit;
 
@@ -50,7 +51,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
             string esContentType = String.Empty;
             HttpMethod esMethod = HttpMethod.DELETE; // Basically, something other than the expected value.
 
-            JObject requestBody = null;
+            JToken requestBody = null;
 
             ElasticsearchInterceptingConnection conn = new ElasticsearchInterceptingConnection();
             conn.RegisterRequestHandlerForType<Nest.SearchResponse<Suggestion>>((req, res) =>
@@ -60,7 +61,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
                 res.StatusCode = 200;
 
                 esURI = req.Uri;
-                esContentType = req.ContentType;
+                esContentType = req.RequestMimeType;
                 esMethod = req.Method;
                 requestBody = conn.GetRequestPost(req);
             });
@@ -68,7 +69,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
             // The URI does not matter, an InMemoryConnection never requests from the server.
             var pool = new SingleNodeConnectionPool(new Uri("http://localhost:9200"));
 
-            var connectionSettings = new ConnectionSettings(pool, conn);
+            var connectionSettings = new ConnectionSettings(pool, conn, sourceSerializer: JsonNetSerializer.Default);
             IElasticClient client = new ElasticClient(connectionSettings);
 
             // Setup the mocked Options
@@ -80,7 +81,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
             // sets up the request correctly.
             Suggestion[] result = await query.GetSuggestions(data.DictionaryName, data.Audience, data.Language, data.SearchText, data.MatchType, data.Size);
 
-            Assert.Equal("/glossaryv1/terms/_search", esURI.AbsolutePath);
+            Assert.Equal("/glossaryv1/_search", esURI.AbsolutePath);
             Assert.Equal("application/json", esContentType);
             Assert.Equal(HttpMethod.POST, esMethod);
             Assert.Equal(data.ExpectedData, requestBody, new JTokenEqualityComparer());
@@ -104,7 +105,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
             // The URI does not matter, an InMemoryConnection never requests from the server.
             var pool = new SingleNodeConnectionPool(new Uri("http://localhost:9200"));
 
-            var connectionSettings = new ConnectionSettings(pool, conn);
+            var connectionSettings = new ConnectionSettings(pool, conn, sourceSerializer: JsonNetSerializer.Default);
             IElasticClient client = new ElasticClient(connectionSettings);
 
             // Setup the mocked Options
@@ -135,7 +136,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
             // The URI does not matter, an InMemoryConnection never requests from the server.
             var pool = new SingleNodeConnectionPool(new Uri("http://localhost:9200"));
 
-            var connectionSettings = new ConnectionSettings(pool, conn);
+            var connectionSettings = new ConnectionSettings(pool, conn, sourceSerializer: JsonNetSerializer.Default);
             IElasticClient client = new ElasticClient(connectionSettings);
 
             // Setup the mocked Options
@@ -157,24 +158,23 @@ namespace NCI.OCPL.Api.Glossary.Tests
         [Fact]
         public async void GetSuggestions_TestInvalidResponse()
         {
-            ElasticsearchInterceptingConnection conn = new ElasticsearchInterceptingConnection();
-            conn.RegisterRequestHandlerForType<Nest.SearchResponse<Suggestion>>((req, res) =>
-            {
-                string partial = @"{
+            string partial = @"{
                     ""took"": 223,
                     ""timed_out"": false,
                     ""_shards"": {
                                 ""total"": 1,
                         ""successful"": 1,";
-                byte[] byteArray = Encoding.UTF8.GetBytes(partial);
-                res.Stream = new MemoryStream(byteArray);
-                res.StatusCode = 200;
-            });
+            InMemoryConnection conn = new InMemoryConnection(
+                responseBody: Encoding.UTF8.GetBytes(partial),
+                statusCode: 200,
+                exception: null,
+                contentType: "application/json"
+            );
 
             // The URI does not matter, an InMemoryConnection never requests from the server.
             var pool = new SingleNodeConnectionPool(new Uri("http://localhost:9200"));
 
-            var connectionSettings = new ConnectionSettings(pool, conn);
+            var connectionSettings = new ConnectionSettings(pool, conn, sourceSerializer: JsonNetSerializer.Default);
             IElasticClient client = new ElasticClient(connectionSettings);
 
             // Setup the mocked Options
@@ -217,13 +217,16 @@ namespace NCI.OCPL.Api.Glossary.Tests
     ""took"": 223,
     ""timed_out"": false,
     ""_shards"": {
-                ""total"": 1,
+        ""total"": 1,
         ""successful"": 1,
         ""skipped"": 0,
         ""failed"": 0
     },
     ""hits"": {
-                ""total"": 0,
+        ""total"": {
+            ""value"": 0,
+            ""relation"": ""eq""
+        },
         ""max_score"": null,
         ""hits"": []
     }

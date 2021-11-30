@@ -79,28 +79,21 @@ namespace NCI.OCPL.Api.Glossary.Services
             {
                 string idValue = $"{id}_{dictionary?.ToLower()}_{language?.ToLower()}_{audience.ToString().ToLower()}";
                 response = await _elasticClient.GetAsync<GlossaryTerm>(new DocumentPath<GlossaryTerm>(idValue),
-                        g => g.Index( this._apiOptions.AliasName ).Type("terms"));
-
+                        g => g.Index( this._apiOptions.AliasName ));
             }
             catch (Exception ex)
             {
                 String msg = $"Could not search dictionary '{dictionary}', audience '{audience}', language '{language}' and id '{id}.";
                 _logger.LogError($"Error searching index: '{this._apiOptions.AliasName}'.");
                 _logger.LogError(ex, msg);
-                throw new APIErrorException(500, msg);
+                throw;
             }
 
-            if (!response.IsValid)
+            if (!response.ApiCall.Success)
             {
-                String msg = $"Invalid response when searching for dictionary  '{dictionary}', audience '{audience}', language '{language}' and id '{id}.";
+                String msg = $"Invalid Elasticsearch response for dictionary '{dictionary}', audience '{audience}', language '{language}' and id '{id}.\n\n{response.DebugInformation}";
                 _logger.LogError(msg);
-                throw new APIErrorException(500, msg);
-            }
-
-            if(null==response.Source){
-                string msg = $"No match for dictionary '{dictionary}', audience '{audience}', language '{language}' and id '{id}.";
-                _logger.LogDebug(msg);
-                throw new APIErrorException(404, msg);
+                throw new APIInternalException(msg);
             }
 
             return response.Source;
@@ -118,8 +111,7 @@ namespace NCI.OCPL.Api.Glossary.Services
         {
             // Set up the SearchRequest to send to elasticsearch.
             Indices index = Indices.Index(new string[] { this._apiOptions.AliasName});
-            Types types = Types.Type(new string[] { "terms" });
-            SearchRequest request = new SearchRequest(index, types)
+            SearchRequest request = new SearchRequest(index)
             {
                 Query = new TermQuery {Field = "language", Value = language.ToString()} &&
                         new TermQuery {Field = "audience", Value = audience.ToString()} &&
@@ -128,7 +120,7 @@ namespace NCI.OCPL.Api.Glossary.Services
                 ,
                 Sort = new List<ISort>
                 {
-                    new SortField { Field = "term_name" }
+                    new FieldSort { Field = "term_name" }
                 }
             };
 
@@ -142,14 +134,13 @@ namespace NCI.OCPL.Api.Glossary.Services
                 String msg = $"Could not search dictionary '{dictionary}', audience '{audience}', language '{language}', pretty URL name '{prettyUrlName}'.";
                 _logger.LogError($"Error searching index: '{this._apiOptions.AliasName}'.");
                 _logger.LogError(ex, msg);
-                throw new APIErrorException(500, msg);
+                throw;
             }
 
             if (!response.IsValid)
             {
-                String msg = $"Invalid response when searching for dictionary '{dictionary}', audience '{audience}', language '{language}', pretty URL name '{prettyUrlName}'.";
-                _logger.LogError(msg);
-                throw new APIErrorException(500, "errors occured");
+                _logger.LogError($"Invalid Elasticsearch response for dictionary '{dictionary}', audience '{audience}', language '{language}', pretty URL name '{prettyUrlName}'.\n\n{response.DebugInformation}");
+                throw new APIInternalException("errors occured");
             }
 
             GlossaryTerm glossaryTerm = new GlossaryTerm();
@@ -161,14 +152,12 @@ namespace NCI.OCPL.Api.Glossary.Services
             }
             else if (response.Total == 0)
             {
-                string msg = $"No match for dictionary '{dictionary}', audience '{audience}', language '{language}', pretty URL name '{prettyUrlName}'.";
-                _logger.LogDebug(msg);
-                throw new APIErrorException(404, msg);
+                glossaryTerm = null;
             }
-            else {
-                string msg = $"Incorrect response when searching for dictionary '{dictionary}', audience '{audience}', language '{language}', pretty URL name '{prettyUrlName}'.";
-                _logger.LogError(msg);
-                throw new APIErrorException(500, "Errors have occured.");
+            else
+            {
+                _logger.LogError($"Multiple results for dictionary '{dictionary}', audience '{audience}', language '{language}', pretty URL name '{prettyUrlName}'.");
+                throw new APIInternalException("errors occured");
             }
 
             return glossaryTerm;
@@ -194,8 +183,7 @@ namespace NCI.OCPL.Api.Glossary.Services
 
             // Set up the SearchRequest to send to elasticsearch.
             Indices index = Indices.Index(new string[] { this._apiOptions.AliasName});
-            Types types = Types.Type(new string[] { "terms" });
-            SearchRequest request = new SearchRequest(index, types)
+            SearchRequest request = new SearchRequest(index)
             {
                 Query = new TermQuery {Field = "language", Value = language.ToString()} &&
                         new TermQuery {Field = "audience", Value = audience.ToString()} &&
@@ -203,7 +191,7 @@ namespace NCI.OCPL.Api.Glossary.Services
                 ,
                 Sort = new List<ISort>
                 {
-                    new SortField { Field = "term_name" }
+                    new FieldSort { Field = "term_name" }
                 },
                 Size = size,
                 From = from,
@@ -288,7 +276,6 @@ namespace NCI.OCPL.Api.Glossary.Services
 
             // Set up the SearchRequest to send to elasticsearch.
             Indices index = Indices.Index(new string[] { this._apiOptions.AliasName});
-            Types types = Types.Type(new string[] { "terms" });
 
             // Figure out the specific term subquery based on the match type.
             QueryBase termSubquery;
@@ -301,7 +288,7 @@ namespace NCI.OCPL.Api.Glossary.Services
                     throw new ArgumentException($"Uknown matchType value '${matchType}'.");
             }
 
-            SearchRequest request = new SearchRequest(index, types)
+            SearchRequest request = new SearchRequest(index)
             {
                 Query = new TermQuery {Field = "language", Value = language.ToString()} &&
                         new TermQuery {Field = "audience", Value = audience.ToString()} &&
@@ -310,7 +297,7 @@ namespace NCI.OCPL.Api.Glossary.Services
                 ,
                 Sort = new List<ISort>
                 {
-                    new SortField { Field = "term_name" }
+                    new FieldSort { Field = "term_name" }
                 },
                 Size = size,
                 From = from,
@@ -329,7 +316,7 @@ namespace NCI.OCPL.Api.Glossary.Services
             {
                 String msg = $"Could not search dictionary '{dictionary}', audience '{audience}', language '{language}', query '{query}', size '{size}', from '{from}'.";
                 _logger.LogError($"Error searching index: '{this._apiOptions.AliasName}'.");
-                _logger.LogError(msg, ex);
+                _logger.LogError(ex, msg);
                 throw new APIErrorException(500, msg);
             }
 
@@ -396,8 +383,7 @@ namespace NCI.OCPL.Api.Glossary.Services
 
             // Set up the SearchRequest to send to elasticsearch.
             Indices index = Indices.Index(new string[] { this._apiOptions.AliasName});
-            Types types = Types.Type(new string[] { "terms" });
-            SearchRequest request = new SearchRequest(index, types)
+            SearchRequest request = new SearchRequest(index)
             {
                 Query = new TermQuery {Field = "language", Value = language.ToString()} &&
                         new TermQuery {Field = "audience", Value = audience.ToString()} &&
@@ -406,7 +392,7 @@ namespace NCI.OCPL.Api.Glossary.Services
                 ,
                 Sort = new List<ISort>
                 {
-                    new SortField { Field = "term_name" }
+                    new FieldSort { Field = "term_name" }
                 },
                 Size = size,
                 From = from,
@@ -425,7 +411,7 @@ namespace NCI.OCPL.Api.Glossary.Services
             {
                 String msg = $"Could not search dictionary '{dictionary}', audience '{audience}', language '{language}', character '{expandCharacter}', size '{size}', from '{from}'.";
                 _logger.LogError($"Error searching index: '{this._apiOptions.AliasName}'.");
-                _logger.LogError(msg, ex);
+                _logger.LogError(ex, msg);
                 throw new APIErrorException(500, msg);
             }
 
@@ -478,26 +464,25 @@ namespace NCI.OCPL.Api.Glossary.Services
         /// <returns>The number of terms available.</returns>
         public async Task<long> GetCount(string dictionary, AudienceType audience, string language)
         {
-            // Set up the CountRequest to send to elasticsearch.
+            // Set up the count request to send to elasticsearch.
             Indices index = Indices.Index(new string[] { this._apiOptions.AliasName });
-            Types types = Types.Type(new string[] { "terms" });
-            CountRequest request = new CountRequest(index, types)
-            {
-                Query = new TermQuery { Field = "language", Value = language.ToString() } &&
-                        new TermQuery { Field = "audience", Value = audience.ToString() } &&
-                        new TermQuery { Field = "dictionary", Value = dictionary.ToString() }
-            };
-
-            ICountResponse response = null;
+            CountResponse response = null;
             try
             {
-                response = await _elasticClient.CountAsync<GlossaryTerm>(request);
+                response = await _elasticClient.CountAsync<GlossaryTerm>( s => s
+                    .Index(index)
+                    .Query(q =>
+                        q.Term(t => t.Field("language").Value(language)) &&
+                        q.Term(t => t.Field("audience").Value(audience)) &&
+                        q.Term(t => t.Field("dictionary").Value(dictionary))
+                    )
+                );
             }
             catch (Exception ex)
             {
                 String msg = $"Could not get a count for dictionary '{dictionary}', audience '{audience}', language '{language}'";
                 _logger.LogError($"Error getting count on index: '{this._apiOptions.AliasName}'.");
-                _logger.LogError(msg, ex);
+                _logger.LogError(ex, msg);
                 throw new APIErrorException(500, msg);
             }
 

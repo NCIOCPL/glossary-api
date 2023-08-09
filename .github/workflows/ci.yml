@@ -1,4 +1,4 @@
-name: Shared API CI workflow
+name: Glossary CI workflow
 
 on:
   pull_request:

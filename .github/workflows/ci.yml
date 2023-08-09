@@ -6,4 +6,4 @@ on:
 
 jobs:
   commitlint_remote:
-    uses: nciocpl/nci.ocpl.api.shared/.github/workflows/apl-ci.yml@shared-wf-test
+    uses: nciocpl/nci.ocpl.api.shared/.github/workflows/api-ci.yml@shared-wf-test

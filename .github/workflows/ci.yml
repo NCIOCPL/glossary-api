@@ -7,3 +7,6 @@ on:
 jobs:
   ci_remote:
     uses: nciocpl/nci.ocpl.api.shared/.github/workflows/api-ci.yml@shared-wf-test
+      api-path: src/NCI.OCPL.Api.Glossary/NCI.OCPL.Api.Glossary.csproj
+      artifact-name: glossary-dictionary-api
+      assembly-name: NCI.OCPL.Api.Glossary.dll

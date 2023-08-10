@@ -9,5 +9,5 @@ jobs:
     uses: nciocpl/nci.ocpl.api.shared/.github/workflows/api-ci.yml@shared-wf-test
     with:
       api-path: src/NCI.OCPL.Api.Glossary/NCI.OCPL.Api.Glossary.csproj
-      artifact-name: glossary-dictionary-api
+      artifact-name: glossary-api
       assembly-name: NCI.OCPL.Api.Glossary.dll

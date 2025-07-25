@@ -96,7 +96,9 @@ namespace NCI.OCPL.Api.Glossary.Controllers
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, $"Error encountered for dictionary '{dictionary}', audience '{audience}', language '{language}' and id '{id}.");
+                    string msg = $"Error encountered for dictionary '{dictionary}', audience '{audience}', language '{language}' and id '{id}."
+                      .Replace(Environment.NewLine, String.Empty);
+                    _logger.LogError(ex, msg);
                     throw new APIErrorException(500, "Errors Occured");
                 }
                 if(result != null)
@@ -139,7 +141,9 @@ namespace NCI.OCPL.Api.Glossary.Controllers
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, $"Error encountered for dictionary '{current.Value.Item1}', audience '{current.Value.Item2}', language '{language}' and id '{id}.");
+                        string msg = $"Error encountered for dictionary '{current.Value.Item1}', audience '{current.Value.Item2}', language '{language}' and id '{id}."
+                          .Replace(Environment.NewLine, String.Empty);
+                        _logger.LogError(ex, msg);
                         throw new APIErrorException(500, "Errors Occured");
                     }
                 } while ( current != start );
@@ -186,7 +190,9 @@ namespace NCI.OCPL.Api.Glossary.Controllers
                 }
                 catch(Exception ex)
                 {
-                    _logger.LogError(ex, $"Error encountered for dictionary '{dictionary}', audience '{audience}', language '{language}' and pretty url '{prettyUrlName}'.");
+                    string msg = $"Error encountered for dictionary '{dictionary}', audience '{audience}', language '{language}' and pretty url '{prettyUrlName}'."
+                      .Replace(Environment.NewLine, String.Empty);
+                    _logger.LogError(ex, msg);
                     throw new APIErrorException(500, "Errors occured");
                 }
                 if(result != null)
@@ -229,7 +235,9 @@ namespace NCI.OCPL.Api.Glossary.Controllers
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, $"Error encountered for dictionary '{current.Value.Item1}', audience '{current.Value.Item2}', language '{language}' and pretty URL name '{prettyUrlName}'.");
+                        string msg = $"Error encountered for dictionary '{current.Value.Item1}', audience '{current.Value.Item2}', language '{language}' and pretty URL name '{prettyUrlName}'."
+                          .Replace(Environment.NewLine, String.Empty);
+                        _logger.LogError(ex, msg);
                         throw new APIErrorException(500, "Errors Occured");
                     }
 

@@ -81,7 +81,8 @@ namespace NCI.OCPL.Api.Glossary.Services
             }
             catch (Exception ex)
             {
-                string msg = $"Could not search dictionary '{dictionary}', audience '{audience}', and language '{language}'.";
+                string msg = $"Could not search dictionary '{dictionary}', audience '{audience}', and language '{language}'."
+                  .Replace(Environment.NewLine, String.Empty);
                 _logger.LogError($"Error searching index: '{this._apiOptions.AliasName}'.");
                 _logger.LogError(ex, msg);
                 throw new APIErrorException(500, msg);
@@ -89,7 +90,9 @@ namespace NCI.OCPL.Api.Glossary.Services
 
             if (!response.IsValid)
             {
-                _logger.LogError($"Invalid response when searching for dictionary '{dictionary}', audience '{audience}', language '{language}', query '{searchText}', contains '{matchType}', size '{size}'.");
+                string msg = $"Invalid response when searching for dictionary '{dictionary}', audience '{audience}', language '{language}', query '{searchText}', contains '{matchType}', size '{size}'."
+                  .Replace(Environment.NewLine, String.Empty);
+                _logger.LogError(msg);
                 throw new APIErrorException(500, "errors occured");
             }
 

@@ -83,7 +83,8 @@ namespace NCI.OCPL.Api.Glossary.Services
             }
             catch (Exception ex)
             {
-                String msg = $"Could not search dictionary '{dictionary}', audience '{audience}', language '{language}' and id '{id}.";
+                String msg = $"Could not search dictionary '{dictionary}', audience '{audience}', language '{language}' and id '{id}."
+                  .Replace(Environment.NewLine, String.Empty);
                 _logger.LogError($"Error searching index: '{this._apiOptions.AliasName}'.");
                 _logger.LogError(ex, msg);
                 throw;
@@ -91,7 +92,8 @@ namespace NCI.OCPL.Api.Glossary.Services
 
             if (!response.ApiCall.Success)
             {
-                String msg = $"Invalid Elasticsearch response for dictionary '{dictionary}', audience '{audience}', language '{language}' and id '{id}.\n\n{response.DebugInformation}";
+                String msg = $"Invalid Elasticsearch response for dictionary '{dictionary}', audience '{audience}', language '{language}' and id '{id}.\n\n{response.DebugInformation}"
+                  .Replace(Environment.NewLine, String.Empty);
                 _logger.LogError(msg);
                 throw new APIInternalException(msg);
             }
@@ -131,7 +133,8 @@ namespace NCI.OCPL.Api.Glossary.Services
             }
             catch (Exception ex)
             {
-                String msg = $"Could not search dictionary '{dictionary}', audience '{audience}', language '{language}', pretty URL name '{prettyUrlName}'.";
+                String msg = $"Could not search dictionary '{dictionary}', audience '{audience}', language '{language}', pretty URL name '{prettyUrlName}'."
+                  .Replace(Environment.NewLine, String.Empty);
                 _logger.LogError($"Error searching index: '{this._apiOptions.AliasName}'.");
                 _logger.LogError(ex, msg);
                 throw;
@@ -139,7 +142,10 @@ namespace NCI.OCPL.Api.Glossary.Services
 
             if (!response.IsValid)
             {
-                _logger.LogError($"Invalid Elasticsearch response for dictionary '{dictionary}', audience '{audience}', language '{language}', pretty URL name '{prettyUrlName}'.\n\n{response.DebugInformation}");
+                string msg = $"Invalid Elasticsearch response for dictionary '{dictionary}', audience '{audience}', language '{language}', pretty URL name '{prettyUrlName}'."
+                  .Replace(Environment.NewLine, String.Empty)
+                  + $"\n\n{response.DebugInformation}";
+                _logger.LogError(msg);
                 throw new APIInternalException("errors occured");
             }
 
@@ -156,7 +162,9 @@ namespace NCI.OCPL.Api.Glossary.Services
             }
             else
             {
-                _logger.LogError($"Multiple results for dictionary '{dictionary}', audience '{audience}', language '{language}', pretty URL name '{prettyUrlName}'.");
+                string msg = $"Multiple results for dictionary '{dictionary}', audience '{audience}', language '{language}', pretty URL name '{prettyUrlName}'."
+                  .Replace(Environment.NewLine, String.Empty);
+                _logger.LogError(msg);
                 throw new APIInternalException("errors occured");
             }
 
@@ -208,7 +216,8 @@ namespace NCI.OCPL.Api.Glossary.Services
             }
             catch (Exception ex)
             {
-                String msg = $"Could not get dictionary '{dictionary}', audience '{audience}', language '{language}', size '{size}', from '{from}'.";
+                String msg = $"Could not get dictionary '{dictionary}', audience '{audience}', language '{language}', size '{size}', from '{from}'."
+                  .Replace(Environment.NewLine, String.Empty);
                 _logger.LogError($"Error Fetching All from index: '{this._apiOptions.AliasName}'.");
                 _logger.LogError(ex, msg);
                 throw new APIErrorException(500, msg);
@@ -216,7 +225,8 @@ namespace NCI.OCPL.Api.Glossary.Services
 
             if (!response.IsValid)
             {
-                String msg = $"Invalid response when getting dictionary '{dictionary}', audience '{audience}', language '{language}', size '{size}', from '{from}'.";
+                String msg = $"Invalid response when getting dictionary '{dictionary}', audience '{audience}', language '{language}', size '{size}', from '{from}'."
+                  .Replace(Environment.NewLine, String.Empty);
                 _logger.LogError(msg);
                 throw new APIErrorException(500, "errors occured");
             }
@@ -314,7 +324,8 @@ namespace NCI.OCPL.Api.Glossary.Services
             }
             catch (Exception ex)
             {
-                String msg = $"Could not search dictionary '{dictionary}', audience '{audience}', language '{language}', query '{query}', size '{size}', from '{from}'.";
+                String msg = $"Could not search dictionary '{dictionary}', audience '{audience}', language '{language}', query '{query}', size '{size}', from '{from}'."
+                  .Replace(Environment.NewLine, String.Empty);
                 _logger.LogError($"Error searching index: '{this._apiOptions.AliasName}'.");
                 _logger.LogError(ex, msg);
                 throw new APIErrorException(500, msg);
@@ -322,7 +333,8 @@ namespace NCI.OCPL.Api.Glossary.Services
 
             if (!response.IsValid)
             {
-                String msg = $"Invalid response when searching for dictionary '{dictionary}', audience '{audience}', language '{language}', query '{query}', size '{size}', from '{from}'.";
+                String msg = $"Invalid response when searching for dictionary '{dictionary}', audience '{audience}', language '{language}', query '{query}', size '{size}', from '{from}'."
+                  .Replace(Environment.NewLine, String.Empty);
                 _logger.LogError(msg);
                 throw new APIErrorException(500, "errors occured");
             }
@@ -409,7 +421,8 @@ namespace NCI.OCPL.Api.Glossary.Services
             }
             catch (Exception ex)
             {
-                String msg = $"Could not search dictionary '{dictionary}', audience '{audience}', language '{language}', character '{expandCharacter}', size '{size}', from '{from}'.";
+                String msg = $"Could not search dictionary '{dictionary}', audience '{audience}', language '{language}', character '{expandCharacter}', size '{size}', from '{from}'."
+                  .Replace(Environment.NewLine, String.Empty);
                 _logger.LogError($"Error searching index: '{this._apiOptions.AliasName}'.");
                 _logger.LogError(ex, msg);
                 throw new APIErrorException(500, msg);
@@ -417,7 +430,8 @@ namespace NCI.OCPL.Api.Glossary.Services
 
             if (!response.IsValid)
             {
-                String msg = $"Invalid response when searching for '{dictionary}', audience '{audience}', language '{language}', character '{expandCharacter}', size '{size}', from '{from}'.";
+                String msg = $"Invalid response when searching for '{dictionary}', audience '{audience}', language '{language}', character '{expandCharacter}', size '{size}', from '{from}'."
+                  .Replace(Environment.NewLine, String.Empty);
                 _logger.LogError(msg);
                 throw new APIErrorException(500, "errors occured");
             }
@@ -480,7 +494,8 @@ namespace NCI.OCPL.Api.Glossary.Services
             }
             catch (Exception ex)
             {
-                String msg = $"Could not get a count for dictionary '{dictionary}', audience '{audience}', language '{language}'";
+                String msg = $"Could not get a count for dictionary '{dictionary}', audience '{audience}', language '{language}'"
+                  .Replace(Environment.NewLine, String.Empty);
                 _logger.LogError($"Error getting count on index: '{this._apiOptions.AliasName}'.");
                 _logger.LogError(ex, msg);
                 throw new APIErrorException(500, msg);
@@ -488,7 +503,8 @@ namespace NCI.OCPL.Api.Glossary.Services
 
             if(!response.IsValid)
             {
-                String msg = $"Invalid response when searching for dictionary '{dictionary}', audience '{audience}', language '{language}'";
+                String msg = $"Invalid response when searching for dictionary '{dictionary}', audience '{audience}', language '{language}'"
+                  .Replace(Environment.NewLine, String.Empty);
                 _logger.LogError(msg);
                 throw new APIErrorException(500, "errors occured");
             }

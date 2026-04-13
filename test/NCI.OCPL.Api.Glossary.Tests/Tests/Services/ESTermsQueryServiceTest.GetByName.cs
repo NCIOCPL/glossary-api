@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
+using System.Text.Json.Nodes;
+using System.Threading.Tasks;
 
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
 
-using Elasticsearch.Net;
-using Nest;
-using Nest.JsonNetSerializer;
-using Newtonsoft.Json.Linq;
+using Elastic.Clients.Elasticsearch;
+using Elastic.Transport;
 using Xunit;
 
 using NCI.OCPL.Api.Common.Testing;
@@ -15,10 +16,12 @@ using NCI.OCPL.Api.Glossary.Models;
 using NCI.OCPL.Api.Glossary.Services;
 using NCI.OCPL.Api.Glossary.Tests.ESTermsQueryTestData;
 using NCI.OCPL.Api.Common;
-using System.Text;
 
 namespace NCI.OCPL.Api.Glossary.Tests
 {
+    /// <summary>
+    ///  Tests for ESTermsQueryServiceTest::GetByName.
+    /// </summary>
     public partial class ESTermsQueryServiceTest
     {
 
@@ -36,21 +39,16 @@ namespace NCI.OCPL.Api.Glossary.Tests
         [InlineData(500)]
         [InlineData(502)]
         [InlineData(503)]
-        public async void GetByName_TestAPIConnectionFailure(int returnStatus)
+        public async Task GetByName_TestAPIConnectionFailure(int returnStatus)
         {
             InMemoryConnection conn = new InMemoryConnection(
                 responseBody: Encoding.UTF8.GetBytes("An error message"),
                 statusCode: returnStatus,
-                exception: null,
                 contentType: "text/plain"
             );
 
-            // While this has a URI, it does not matter, an InMemoryConnection never requests
-            // from the server.
-            var pool = new SingleNodeConnectionPool(new Uri("http://localhost:9200"));
-
-            var connectionSettings = new ConnectionSettings(pool, conn, sourceSerializer: JsonNetSerializer.Default);
-            IElasticClient client = new ElasticClient(connectionSettings);
+            var connectionSettings = TestingElasticsearchClientSettingsFactory.Create(conn);
+            ElasticsearchClient client = new ElasticsearchClient(connectionSettings);
 
             // Setup the mocked Options
             IOptions<GlossaryAPIOptions> gTermsClientOptions = GetMockOptions();
@@ -66,21 +64,16 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// Test receiving an invalid response from ES in GetByName.
         /// </summary>
         [Fact]
-        public async void GetByName_TestInvalidResponse()
+        public async Task GetByName_TestInvalidResponse()
         {
             InMemoryConnection conn = new InMemoryConnection(
                 responseBody: Encoding.UTF8.GetBytes("Not the server you were looking for"),
                 statusCode: 200,
-                exception: null,
                 contentType: "text/plain"
             );
 
-            // While this has a URI, it does not matter, an InMemoryConnection never requests
-            // from the server.
-            var pool = new SingleNodeConnectionPool(new Uri("http://localhost:9200"));
-
-            var connectionSettings = new ConnectionSettings(pool, conn, sourceSerializer: JsonNetSerializer.Default);
-            IElasticClient client = new ElasticClient(connectionSettings);
+            var  connectionSettings = TestingElasticsearchClientSettingsFactory.Create(conn);
+            ElasticsearchClient client = new ElasticsearchClient(connectionSettings);
 
             // Setup the mocked Options
             IOptions<GlossaryAPIOptions> gTermsClientOptions = GetMockOptions();
@@ -96,16 +89,14 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// Test that GetByName Request for Elasticsearch is set up correctly.
         /// </summary>
         [Fact]
-        public async void GetByName_TestRequestSetup()
+        public async Task GetByName_TestRequestSetup()
         {
-            JToken actualRequest = null;
-            JToken expectedRequest = JToken.Parse(@"
+            string actualRequest = null;
+            JsonNode expectedRequest = JsonNode.Parse(@"
                 {
-                    ""sort"": [
-                        {
-                            ""term_name"": {}
-                        }
-                    ],
+                    ""sort"": {
+                        ""term_name"": {}
+                    },
                     ""query"": {
                         ""bool"": {
                             ""must"": [
@@ -145,21 +136,16 @@ namespace NCI.OCPL.Api.Glossary.Tests
 
             Uri actualESURI = null;
 
-            ElasticsearchInterceptingConnection conn = new ElasticsearchInterceptingConnection();
-            conn.RegisterRequestHandlerForType<Nest.SearchResponse<GlossaryTerm>>((req, res) =>
-            {
-                res.Stream = TestingTools.GetTestFileAsStream("ESTermsQueryData/GetByName/s-1.json");
-                res.StatusCode = 200;
-
-                actualRequest = conn.GetRequestPost(req);
-                actualESURI = req.Uri;
-            });
-
-            // Doesn't actually connect to the server.
-            var pool = new SingleNodeConnectionPool(new Uri("http://localhost:9200"));
-
-            var connectionSettings = new ConnectionSettings(pool, conn, sourceSerializer: JsonNetSerializer.Default);
-            IElasticClient client = new ElasticClient(connectionSettings);
+            string response = TestingTools.ReadTestFile("ESTermsQueryData/GetByName/s-1.json");
+            var connectionSettings = TestingElasticsearchClientSettingsFactory.Create(
+                response,
+                200,
+                callDetails =>
+                {
+                    actualRequest = Encoding.UTF8.GetString(callDetails.RequestBodyInBytes);
+                    actualESURI = callDetails.Uri;
+                });
+            ElasticsearchClient client = new ElasticsearchClient(connectionSettings);
 
             // Setup the mocked Options
             IOptions<GlossaryAPIOptions> gTermsClientOptions = GetMockOptions();
@@ -169,7 +155,8 @@ namespace NCI.OCPL.Api.Glossary.Tests
             // Don't actually care that this returns anything, only that the connection set up the request correctly.
             await termsClient.GetByName("Cancer.gov", AudienceType.Patient, "en", "s-1");
 
-            Assert.Equal(expectedRequest, actualRequest, new JTokenEqualityComparer());
+            JsonNode actualRequestJson = JsonNode.Parse(actualRequest);
+            Assert.True(JsonNode.DeepEquals(expectedRequest, actualRequestJson));
             Assert.Equal("/glossaryv1/_search", actualESURI.AbsolutePath);
         }
 
@@ -177,10 +164,12 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// Test that GetByName throws exception for multiple results.
         /// </summary>
         [Theory]
-        [InlineData("getbyname_multiplehits", "errors occured")]
-        public async void GetByName_MultipleResults(string file, string expectedMessage)
+        [InlineData("getbyname_multiplehits", "errors occurred")]
+        public async Task GetByName_MultipleResults(string file, string expectedMessage)
         {
-            IElasticClient client = GetByName_GetElasticClientWithData(file);
+            string response = TestingTools.ReadTestFile("ESTermsQueryData/GetByName/" + file + ".json");
+            var connectionSettings = TestingElasticsearchClientSettingsFactory.Create(response, 200);
+            ElasticsearchClient client = new ElasticsearchClient(connectionSettings);
 
             // Setup the mocked Options
             IOptions<GlossaryAPIOptions> gTermsClientOptions = GetMockOptions();
@@ -196,11 +185,10 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// term doesn't exist.
         /// </summary>
         [Fact]
-        public async void GetByName_TermNotFound()
+        public async Task GetByName_TermNotFound()
         {
-            InMemoryConnection conn = new InMemoryConnection(
-                responseBody: Encoding.UTF8.GetBytes(
-                    @"{
+            string response =
+                  @"{
                         ""took"": 3,
                         ""timed_out"": false,
                         ""_shards"": {
@@ -217,16 +205,9 @@ namespace NCI.OCPL.Api.Glossary.Tests
                             ""max_score"": null,
                             ""hits"": []
                         }
-                    }"
-                ),
-                statusCode: 200,
-                exception: null,
-                contentType: "application/json"
-            );
-            // Doesn't actually connect to the server.
-            var pool = new SingleNodeConnectionPool(new Uri("http://localhost:9200"));
-            var connectionSettings = new ConnectionSettings(pool, conn, sourceSerializer: JsonNetSerializer.Default);
-            IElasticClient client = new ElasticClient(connectionSettings);
+                    }";
+            var connectionSettings = TestingElasticsearchClientSettingsFactory.Create(response, 200);
+            ElasticsearchClient client = new ElasticsearchClient(connectionSettings);
 
             // Setup the mocked Options
             IOptions<GlossaryAPIOptions> gTermsClientOptions = GetMockOptions();
@@ -244,9 +225,11 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// <param name="data"></param>
         /// <returns></returns>
         [Theory, MemberData(nameof(GetByNameData))]
-        public async void GetByName_DataLoading(GetByNameTermsQueryTestData data)
+        public async Task GetByName_DataLoading(GetByNameTermsQueryTestData data)
         {
-            IElasticClient client = GetByName_GetElasticClientWithData(data.PrettyUrlName);
+            string response = TestingTools.ReadTestFile("ESTermsQueryData/GetByName/" + data.PrettyUrlName + ".json");
+            var connectionSettings = TestingElasticsearchClientSettingsFactory.Create(response, 200);
+            ElasticsearchClient client = new ElasticsearchClient(connectionSettings);
 
             // Setup the mocked Options
             IOptions<GlossaryAPIOptions> gTermsClientOptions = GetMockOptions();
@@ -256,27 +239,6 @@ namespace NCI.OCPL.Api.Glossary.Tests
             GlossaryTerm glossaryTerm = await termsClient.GetByName("Cancer.gov", AudienceType.Patient, "en", "s-1");
 
             Assert.Equal(data.ExpectedData, glossaryTerm, new GlossaryTermComparer());
-        }
-
-        ///<summary>
-        ///A private method to enrich data from file for GetById
-        ///</summary>
-        private IElasticClient GetByName_GetElasticClientWithData(string prettyUrlName)
-        {
-            ElasticsearchInterceptingConnection conn = new ElasticsearchInterceptingConnection();
-            conn.RegisterRequestHandlerForType<Nest.SearchResponse<GlossaryTerm>>((req, res) =>
-            {
-                //Get the file name for this round
-                res.Stream = TestingTools.GetTestFileAsStream("ESTermsQueryData/GetByName/" + prettyUrlName + ".json");
-                res.StatusCode = 200;
-            });
-
-            var pool = new SingleNodeConnectionPool(new Uri("http://localhost:9200"));
-
-            var connectionSettings = new ConnectionSettings(pool, conn, sourceSerializer: JsonNetSerializer.Default);
-            IElasticClient client = new ElasticClient(connectionSettings);
-
-            return client;
         }
 
     }

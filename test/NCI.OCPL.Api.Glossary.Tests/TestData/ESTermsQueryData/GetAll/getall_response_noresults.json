@@ -15,12 +15,5 @@
         "max_score": 0.0,
         "hits": []
     },
-    "num_reduce_phases": 0,
-    "fields": [
-        {},
-        {},
-        {},
-        {},
-        {}
-    ]
+    "num_reduce_phases": 0
 }

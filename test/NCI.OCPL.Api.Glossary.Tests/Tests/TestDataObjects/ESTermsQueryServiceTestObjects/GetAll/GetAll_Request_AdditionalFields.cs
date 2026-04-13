@@ -1,22 +1,32 @@
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace NCI.OCPL.Api.Glossary.Tests
 {
+    /// <summary>
+    /// Test data for TermsQueryService GetAll method when additional fields should be returned.
+    /// </summary>
     public class GetAll_Request_AdditionalFields : GetAll_Request_Base
     {
+        /// <inheritdoc />
         public override string Dictionary => "Genetics";
 
+        /// <inheritdoc />
         public override AudienceType Audience => AudienceType.HealthProfessional;
 
+        /// <inheritdoc />
         public override string LangCode => "en";
 
+        /// <inheritdoc />
         public override int Size => 5;
 
+        /// <inheritdoc />
         public override int From => 200;
 
+        /// <inheritdoc />
         public override bool IncludeAdditionalInfo => true;
 
-        public override JObject ExpectedRequest => JObject.Parse(@"
+        /// <inheritdoc />
+        public override JsonNode ExpectedRequest => JsonNode.Parse(@"
                 {
                     ""from"": 200,
                     ""size"": 5,
@@ -36,11 +46,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
                             ""media""
                         ]
                     },
-                    ""sort"": [
-                        {
-                            ""term_name"": {}
-                        }
-                    ],
+                    ""sort"": { ""term_name"": {} },
                     ""query"": {
                         ""bool"": {
                             ""must"": [

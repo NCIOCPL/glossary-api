@@ -47,7 +47,7 @@ namespace NCI.OCPL.Api.Glossary
         /// <param name="audience">Patient or Healthcare provider</param>
         /// <param name="language">The language in which the details needs to be fetched</param>
         /// <param name="query">The search query</param>
-        /// <param name="matchType">Defines if the search should begin with or contain the key word</param>
+        /// <param name="matchType">Defines if the search should begin with or contain the keyword</param>
         /// <param name="size">Defines the size of the search</param>
         /// <param name="from">Defines the Offset for search</param>
         /// <param name="includeAdditionalInfo">If true, the RelatedResources and Media fields will be populated. Else, they will be empty.</param>

@@ -1,16 +1,15 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Text;
+using System.Text.Json.Nodes;
+using System.Threading.Tasks;
 
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
 
-using Elasticsearch.Net;
+using Elastic.Clients.Elasticsearch;
+using Elastic.Transport;
 using Moq;
-using Nest;
-using Nest.JsonNetSerializer;
-using Newtonsoft.Json.Linq;
 using Xunit;
 
 using NCI.OCPL.Api.Common;
@@ -58,46 +57,43 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// </summary>
         /// <param name="data"></param>
         [Theory, MemberData(nameof(RequestData))]
-        public async void GetCount_Request(BaseTermsQueryCountTestData data)
+        public async Task GetCount_Request(BaseTermsQueryCountTestData data)
         {
             Uri esURI = null;
-            string esContentType = String.Empty;
-            HttpMethod esMethod = HttpMethod.DELETE; // Basically, something other than the expected value.
+            HttpMethod esMethod = HttpMethod.DELETE; // Initialize to something other than the expected value.
 
-            JToken requestBody = null;
+            string requestBody = null;
 
-            ElasticsearchInterceptingConnection conn = new ElasticsearchInterceptingConnection();
-            conn.RegisterRequestHandlerForType<Nest.CountResponse>((req, res) =>
-            {
-                // We don't really care about the response for this test.
-                res.Stream = GetMockCountResponse();
-                res.StatusCode = 200;
+            var connectionSettings = TestingElasticsearchClientSettingsFactory.Create(
+                MockCountResponse,
+                200,
+                details =>
+                {
+                    esURI = details.Uri;
+                    esMethod = details.HttpMethod;
+                    if (details.RequestBodyInBytes != null)
+                    {
+                        requestBody = Encoding.UTF8.GetString(details.RequestBodyInBytes);
+                    }
+                }
+            );
 
-                esURI = req.Uri;
-                esContentType = req.RequestMimeType;
-                esMethod = req.Method;
-                requestBody = conn.GetRequestPost(req);
-            });
-
-            // The URI does not matter, an InMemoryConnection never requests from the server.
-            var pool = new SingleNodeConnectionPool(new Uri("http://localhost:9200"));
-
-            var connectionSettings = new ConnectionSettings(pool, conn, sourceSerializer: JsonNetSerializer.Default);
-            IElasticClient client = new ElasticClient(connectionSettings);
+            ElasticsearchClient client = new ElasticsearchClient(connectionSettings);
 
             // Setup the mocked Options
             IOptions<GlossaryAPIOptions> clientOptions = GetMockOptions();
 
             ESTermsQueryService query = new ESTermsQueryService(client, clientOptions, new NullLogger<ESTermsQueryService>());
 
-            // We don't really care that this returns anything (for this test), only that the intercepting connection
+            // We don't really care that this returns anything (for this test), only that the connection
             // sets up the request correctly.
             long result = await query.GetCount(data.DictionaryName, data.Audience, data.Language);
 
             Assert.Equal("/glossaryv1/_count", esURI.AbsolutePath);
-            Assert.Equal("application/json", esContentType);
             Assert.Equal(HttpMethod.POST, esMethod);
-            Assert.Equal(data.ExpectedData, requestBody, new JTokenEqualityComparer());
+
+            var actualJson = JsonNode.Parse(requestBody);
+            Assert.True(JsonNode.DeepEquals(data.ExpectedData, actualJson));
         }
 
 
@@ -105,31 +101,12 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// Verify the response from ES is processed correctly.
         /// </summary>
         [Theory, MemberData(nameof(ResponseData))]
-        public async void GetCount_Response(BaseTermsCountResponseData data)
+        public async Task GetCount_Response(BaseTermsCountResponseData data)
         {
-            Uri esURI = null;
-            string esContentType = String.Empty;
-            HttpMethod esMethod = HttpMethod.DELETE; // Basically, something other than the expected value.
+            string responseBody = TestingTools.ReadTestFile("ESTermsQueryData/GetCount/" + data.TestFilename);
 
-            JToken requestBody = null;
-
-            ElasticsearchInterceptingConnection conn = new ElasticsearchInterceptingConnection();
-            conn.RegisterRequestHandlerForType<Nest.CountResponse>((req, res) =>
-            {
-                res.Stream = TestingTools.GetTestFileAsStream("ESTermsQueryData/GetCount/" + data.TestFilename);
-                res.StatusCode = 200;
-
-                esURI = req.Uri;
-                esContentType = req.RequestMimeType;
-                esMethod = req.Method;
-                requestBody = conn.GetRequestPost(req);
-            });
-
-            // The URI does not matter, an InMemoryConnection never requests from the server.
-            var pool = new SingleNodeConnectionPool(new Uri("http://localhost:9200"));
-
-            var connectionSettings = new ConnectionSettings(pool, conn, sourceSerializer: JsonNetSerializer.Default);
-            IElasticClient client = new ElasticClient(connectionSettings);
+            var connectionSettings = TestingElasticsearchClientSettingsFactory.Create(responseBody, 200);
+            ElasticsearchClient client = new ElasticsearchClient(connectionSettings);
 
             // Setup the mocked Options
             IOptions<GlossaryAPIOptions> clientOptions = GetMockOptions();
@@ -150,20 +127,10 @@ namespace NCI.OCPL.Api.Glossary.Tests
         [InlineData(403)]
         [InlineData(404)]
         [InlineData(500)]
-        public async void GetCount_ErrorResponse(int returnStatusCode)
+        public async Task GetCount_ErrorResponse(int returnStatusCode)
         {
-            InMemoryConnection conn = new InMemoryConnection(
-                responseBody: new byte[0],
-                statusCode: returnStatusCode,
-                exception: null,
-                contentType: "application/json"
-            );
-
-            // The URI does not matter, an InMemoryConnection never requests from the server.
-            var pool = new SingleNodeConnectionPool(new Uri("http://localhost:9200"));
-
-            var connectionSettings = new ConnectionSettings(pool, conn, sourceSerializer: JsonNetSerializer.Default);
-            IElasticClient client = new ElasticClient(connectionSettings);
+            var connectionSettings = TestingElasticsearchClientSettingsFactory.Create(string.Empty, returnStatusCode);
+            ElasticsearchClient client = new ElasticsearchClient(connectionSettings);
 
             // Setup the mocked Options
             IOptions<GlossaryAPIOptions> clientOptions = GetMockOptions();
@@ -182,23 +149,14 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// a broken response.
         /// </summary>
         [Fact]
-        public async void GetCount_InvalidResponse()
+        public async Task GetCount_InvalidResponse()
         {
             string partial =@"{
                 ""count"": 8458,
                 ""_shards"": {";
-            InMemoryConnection conn = new InMemoryConnection(
-                responseBody: Encoding.UTF8.GetBytes(partial),
-                statusCode: 200,
-                exception: null,
-                contentType: "application/json"
-            );
 
-            // The URI does not matter, an InMemoryConnection never requests from the server.
-            var pool = new SingleNodeConnectionPool(new Uri("http://localhost:9200"));
-
-            var connectionSettings = new ConnectionSettings(pool, conn, sourceSerializer: JsonNetSerializer.Default);
-            IElasticClient client = new ElasticClient(connectionSettings);
+            var connectionSettings = TestingElasticsearchClientSettingsFactory.Create(partial, 200);
+            ElasticsearchClient client = new ElasticsearchClient(connectionSettings);
 
             // Setup the mocked Options
             IOptions<GlossaryAPIOptions> clientOptions = GetMockOptions();
@@ -213,7 +171,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         }
 
         /// <summary>
-        /// Mock Elasticsearch configuraiton options.
+        /// Mock Elasticsearch configuration options.
         /// </summary>
         private IOptions<GlossaryAPIOptions> GetMockOptions()
         {
@@ -233,9 +191,10 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// Simulates a count response from Elasticsearch so we
         /// have something for tests where we don't care about the response.
         /// </summary>
-        private Stream GetMockCountResponse()
+        private static string MockCountResponse
         {
-            string empty = @"
+          get {
+            return @"
 {
     ""count"": 42,
     ""_shards"": {
@@ -244,9 +203,8 @@ namespace NCI.OCPL.Api.Glossary.Tests
         ""skipped"": 0,
         ""failed"": 0
     }
-        }";
-            byte[] byteArray = Encoding.UTF8.GetBytes(empty);
-            return new MemoryStream(byteArray);
+}";
+          }
         }
     }
 }

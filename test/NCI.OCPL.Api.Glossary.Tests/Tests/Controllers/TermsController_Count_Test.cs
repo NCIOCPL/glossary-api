@@ -1,4 +1,3 @@
-using System;
 using System.Threading.Tasks;
 
 using Moq;
@@ -19,7 +18,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         [Theory]
         [InlineData(new object[] { null })]
         [InlineData(new object[] { "" })]  // Empty string.
-        public async void Count_ErrorMessage_Dictionary(string dictionary)
+        public async Task Count_ErrorMessage_Dictionary(string dictionary)
         {
             Mock<ITermsQueryService> querySvc = new Mock<ITermsQueryService>();
             TermsController controller = new TermsController(NullLogger<TermsController>.Instance, querySvc.Object);
@@ -34,7 +33,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// Verify an error is thrown when an invalid audience is specified.
         /// </summary>
         [Fact]
-        public async void Count_ErrorMessage_Audience()
+        public async Task Count_ErrorMessage_Audience()
         {
             Mock<ITermsQueryService> querySvc = new Mock<ITermsQueryService>();
             TermsController controller = new TermsController(NullLogger<TermsController>.Instance, querySvc.Object);
@@ -46,12 +45,12 @@ namespace NCI.OCPL.Api.Glossary.Tests
         }
 
         /// <summary>
-        /// Verify an error is thrown when an no language is specified.
+        /// Verify an error is thrown when no language is specified.
         /// </summary>
         [Theory]
         [InlineData(new object[] { null })]
         [InlineData(new object[] { "" })]  // Empty string.
-        public async void Count_ErrorMessage_Language(string badLanguage)
+        public async Task Count_ErrorMessage_Language(string badLanguage)
         {
             Mock<ITermsQueryService> querySvc = new Mock<ITermsQueryService>();
             TermsController controller = new TermsController(NullLogger<TermsController>.Instance, querySvc.Object);
@@ -74,7 +73,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         [InlineData("Genetics", AudienceType.HealthProfessional, "es")]
         [InlineData("Genetics", AudienceType.Patient, "en")]
         [InlineData("Genetics", AudienceType.Patient, "es")]
-        public async void Count_QueryValues(string dictionary, AudienceType audience, string language)
+        public async Task Count_QueryValues(string dictionary, AudienceType audience, string language)
         {
             Mock<ITermsQueryService> querySvc = new Mock<ITermsQueryService>();
             TermsController controller = new TermsController(NullLogger<TermsController>.Instance, querySvc.Object);
@@ -111,7 +110,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         [InlineData(new object[] { 100 })]
         [InlineData(new object[] { 500 })]
         [InlineData(new object[] { int.MaxValue })] // Utterly ridiculous.
-        public async void Count_QueryReturn(long returnCount)
+        public async Task Count_QueryReturn(long returnCount)
         {
             Mock<ITermsQueryService> querySvc = new Mock<ITermsQueryService>();
             TermsController controller = new TermsController(NullLogger<TermsController>.Instance, querySvc.Object);

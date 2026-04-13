@@ -4,8 +4,12 @@ using System.Collections.Generic;
 
 namespace NCI.OCPL.Api.Glossary.Tests.ESTermsQueryTestData
 {
+    /// <summary>
+    /// Test data for TermsQueryService GetAll method when there are results to return.
+    /// </summary>
     public class GetAll_S : GetAllTermsQueryTestData
     {
+        /// <inheritdoc />
         public override GlossaryTermResults ExpectedData => new GlossaryTermResults() {
             Results = new GlossaryTerm[] {
                 new GlossaryTerm()
@@ -118,6 +122,7 @@ namespace NCI.OCPL.Api.Glossary.Tests.ESTermsQueryTestData
             Links = null
         };
 
+        /// <inheritdoc />
         public override string GetAllTestType => "results";
     }
 }

@@ -1,6 +1,4 @@
-using Nest;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+using System.Text.Json.Serialization;
 
 namespace NCI.OCPL.Api.Glossary
 {
@@ -13,7 +11,7 @@ namespace NCI.OCPL.Api.Glossary
         /// Notes the related resource type.
         /// </summary>
         /// <value>Always RelatedResourceType.GlossaryTerm</value>
-        [JsonConverter(typeof(StringEnumConverter))]
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public RelatedResourceType Type { get; set; }
 
         /// <summary>
@@ -25,7 +23,6 @@ namespace NCI.OCPL.Api.Glossary
         /// The glossary term's CDR ID.
         /// </summary>
         /// <value></value>
-        [Number(NumberType.Long, Name = "term_id")]
         public long TermId {get; set;}
 
         /// <summary>
@@ -35,14 +32,13 @@ namespace NCI.OCPL.Api.Glossary
         /// healthprofessional - Doctors and other health professionals.
         /// patient - Patients, friends, and family members.
         /// </value>
-        [JsonConverter(typeof(StringEnumConverter))]
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public AudienceType Audience{ get; set; }
 
         /// <summary>
         /// If available, the term's human readable name, rendered in a URL-friendly format.
         /// </summary>
         /// <value>Empty string if no human-readable name is available.</value>
-        [Keyword(Name = "pretty_url_name")]
         public string PrettyUrlName{ get; set; }
     }
 }

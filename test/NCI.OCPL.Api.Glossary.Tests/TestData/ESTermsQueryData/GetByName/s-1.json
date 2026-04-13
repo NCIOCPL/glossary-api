@@ -42,13 +42,5 @@
                 "matched_queries": []
             }
         ]
-    },
-    "num_reduce_phases": 0,
-    "fields": [
-        {},
-        {},
-        {},
-        {},
-        {}
-    ]
+    }
 }

@@ -1,26 +1,23 @@
+using Microsoft.Extensions.Logging.Testing;
 using System;
+using System.IO;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Threading.Tasks;
 
 using Moq;
 using Xunit;
 
-using Microsoft.Extensions.Logging.Testing;
-
 using NCI.OCPL.Api.Common;
-using NCI.OCPL.Api.Glossary;
-using NCI.OCPL.Api.Glossary.Controllers;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System.IO;
 using NCI.OCPL.Api.Common.Testing;
+using NCI.OCPL.Api.Glossary.Controllers;
 
 namespace NCI.OCPL.Api.Glossary.Tests
 {
     public partial class TermsControllerTests
     {
         [Fact]
-        public async void GetById_ErrorMessage_Dictionary()
+        public async Task GetById_ErrorMessage_Dictionary()
         {
             Mock<ITermsQueryService> termQueryService = new Mock<ITermsQueryService>();
             TermsController controller = new TermsController(NullLogger<TermsController>.Instance, termQueryService.Object);
@@ -29,7 +26,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         }
 
         [Fact]
-        public async void GetById_ErrorMessage_Language()
+        public async Task GetById_ErrorMessage_Language()
         {
             Mock<ITermsQueryService> termQueryService = new Mock<ITermsQueryService>();
             TermsController controller = new TermsController(NullLogger<TermsController>.Instance, termQueryService.Object);
@@ -38,7 +35,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         }
 
         [Fact]
-        public async void GetById_ErrorMessage_Id()
+        public async Task GetById_ErrorMessage_Id()
         {
             Mock<ITermsQueryService> termQueryService = new Mock<ITermsQueryService>();
             TermsController controller = new TermsController(NullLogger<TermsController>.Instance, termQueryService.Object);
@@ -47,7 +44,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         }
 
         [Fact]
-        public async void GetById_ErrorMessage_InvalidLanguage()
+        public async Task GetById_ErrorMessage_InvalidLanguage()
         {
             Mock<ITermsQueryService> termQueryService = new Mock<ITermsQueryService>();
             TermsController controller = new TermsController(NullLogger<TermsController>.Instance, termQueryService.Object);
@@ -57,7 +54,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         }
 
         [Fact]
-        public async void GetById()
+        public async Task GetById()
         {
             Mock<ITermsQueryService> termQueryService = new Mock<ITermsQueryService>();
             Pronunciation pronunciation = new Pronunciation("Pronunciation Key", "pronunciation");
@@ -114,8 +111,8 @@ namespace NCI.OCPL.Api.Glossary.Tests
 
             TermsController controller = new TermsController(NullLogger<TermsController>.Instance, termQueryService.Object);
             GlossaryTerm gsTerm = await controller.GetById("Dictionary", AudienceType.Patient, "EN", 1234L);
-            JObject actual = JObject.Parse(JsonConvert.SerializeObject(gsTerm));
-            JObject expected = JObject.Parse(File.ReadAllText(TestingTools.GetPathToTestFile("TermsControllerData/TestData_GetById.json")));
+            JsonNode actual = JsonNode.Parse(JsonSerializer.Serialize(gsTerm));
+            JsonNode expected = JsonNode.Parse(File.ReadAllText(TestingTools.GetPathToTestFile("TermsControllerData/TestData_GetById.json")));
 
             // Verify that the service layer is called:
             // a) with the expected values.
@@ -125,11 +122,11 @@ namespace NCI.OCPL.Api.Glossary.Tests
                 Times.Once
             );
 
-            Assert.Equal(expected, actual, new JTokenEqualityComparer());
+            Assert.True(JsonNode.DeepEquals(expected, actual));
         }
 
         [Fact]
-        public async void GetById_WithTranslation()
+        public async Task GetById_WithTranslation()
         {
             Mock<ITermsQueryService> termQueryService = new Mock<ITermsQueryService>();
             Pronunciation pronunciation = new Pronunciation("Pronunciation Key", "pronunciation");
@@ -193,8 +190,8 @@ namespace NCI.OCPL.Api.Glossary.Tests
 
             TermsController controller = new TermsController(NullLogger<TermsController>.Instance, termQueryService.Object);
             GlossaryTerm gsTerm = await controller.GetById("Dictionary", AudienceType.Patient, "EN", 1234L);
-            JObject actual = JObject.Parse(JsonConvert.SerializeObject(gsTerm));
-            JObject expected = JObject.Parse(File.ReadAllText(TestingTools.GetPathToTestFile("TermsControllerData/TestData_GetById_WithTranslation.json")));
+            JsonNode actual = JsonNode.Parse(JsonSerializer.Serialize(gsTerm));
+            JsonNode expected = JsonNode.Parse(File.ReadAllText(TestingTools.GetPathToTestFile("TermsControllerData/TestData_GetById_WithTranslation.json")));
 
             // Verify that the service layer is called:
             // a) with the expected values.
@@ -204,7 +201,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
                 Times.Once
             );
 
-            Assert.Equal(expected, actual, new JTokenEqualityComparer());
+            Assert.True(JsonNode.DeepEquals(expected, actual));
         }
 
         // This test is for the HealthProfessional fallback logic for GetById.
@@ -215,7 +212,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         // It verifies that the expected and actual glossaryTerm objects are the same.
         // It verifies that the query service was called the expected number of times with the expected params.
         [Fact]
-        public async void GetById_WithFallback_GeneticsHP()
+        public async Task GetById_WithFallback_GeneticsHP()
         {
             Mock<ITermsQueryService> termQueryService = new Mock<ITermsQueryService>();
 
@@ -306,9 +303,9 @@ namespace NCI.OCPL.Api.Glossary.Tests
             GlossaryTerm gsTerm = await controller.GetById("Cancer.gov", AudienceType.HealthProfessional, "en", 556486, true);
 
             // Verify that the expected and actual Term are the same.
-            JObject actual = JObject.Parse(JsonConvert.SerializeObject(gsTerm));
-            JObject expected = JObject.Parse(File.ReadAllText(TestingTools.GetPathToTestFile("TermsControllerData/TestData_GetWithFallback_GeneticsHP.json")));
-            Assert.Equal(expected, actual, new JTokenEqualityComparer());
+            JsonNode actual = JsonNode.Parse(JsonSerializer.Serialize(gsTerm));
+            JsonNode expected = JsonNode.Parse(File.ReadAllText(TestingTools.GetPathToTestFile("TermsControllerData/TestData_GetWithFallback_GeneticsHP.json")));
+            Assert.True(JsonNode.DeepEquals(expected, actual));
 
             // Verify that the service layer is called correctly with the fallback logic:
             // 1) Cancer.gov, HealthProfessional
@@ -346,7 +343,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         // It verifies that the expected and actual glossaryTerm objects are the same.
         // It verifies that the query service was called the expected number of times with the expected params.
         [Fact]
-        public async void GetById_WithFallback_TermsPatient()
+        public async Task GetById_WithFallback_TermsPatient()
         {
             Mock<ITermsQueryService> termQueryService = new Mock<ITermsQueryService>();
             GlossaryTerm glossaryTerm = new GlossaryTerm() {
@@ -438,9 +435,9 @@ namespace NCI.OCPL.Api.Glossary.Tests
             GlossaryTerm gsTerm = await controller.GetById("NotSet", AudienceType.Patient, "en", 44771, true);
 
             // Verify that the expected and actual Term are the same.
-            JObject actual = JObject.Parse(JsonConvert.SerializeObject(gsTerm));
-            JObject expected = JObject.Parse(File.ReadAllText(TestingTools.GetPathToTestFile("TermsControllerData/TestData_GetWithFallback_TermsPatient.json")));
-            Assert.Equal(expected, actual, new JTokenEqualityComparer());
+            JsonNode actual = JsonNode.Parse(JsonSerializer.Serialize(gsTerm));
+            JsonNode expected = JsonNode.Parse(File.ReadAllText(TestingTools.GetPathToTestFile("TermsControllerData/TestData_GetWithFallback_TermsPatient.json")));
+            Assert.True(JsonNode.DeepEquals(expected, actual));
 
             // Verify that the service layer is called correctly with the fallback logic:
             // 1) Empty dictionary, Patient
@@ -478,7 +475,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         // It verifies that the expected and actual glossaryTerm objects are the same.
         // It verifies that the query service was called the expected number of times with the expected params.
         [Fact]
-        public async void GetById_WithFallback_TermsPatient_NotTitleCase()
+        public async Task GetById_WithFallback_TermsPatient_NotTitleCase()
         {
             Mock<ITermsQueryService> termQueryService = new Mock<ITermsQueryService>();
             GlossaryTerm glossaryTerm = new GlossaryTerm()
@@ -519,9 +516,9 @@ namespace NCI.OCPL.Api.Glossary.Tests
             GlossaryTerm gsTerm = await controller.GetById("Cancer.gov", AudienceType.Patient, "en", 44771, true);
 
             // Verify that the expected and actual Term are the same.
-            JObject actual = JObject.Parse(JsonConvert.SerializeObject(gsTerm));
-            JObject expected = JObject.Parse(File.ReadAllText(TestingTools.GetPathToTestFile("TermsControllerData/TestData_GetWithFallback_TermsPatient.json")));
-            Assert.Equal(expected, actual, new JTokenEqualityComparer());
+            JsonNode actual = JsonNode.Parse(JsonSerializer.Serialize(gsTerm));
+            JsonNode expected = JsonNode.Parse(File.ReadAllText(TestingTools.GetPathToTestFile("TermsControllerData/TestData_GetWithFallback_TermsPatient.json")));
+            Assert.True(JsonNode.DeepEquals(expected, actual));
 
             // Verify that the service layer is called correctly with the fallback logic and lowercased-dictionary fallback combination:
             termQueryService.Verify(
@@ -535,7 +532,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         // are identified and cause errors to occur.
         // This is expected to throw a 404.
         [Fact]
-        public async void GetById_WithFallback_ErrorMessage_UnknownCombination()
+        public async Task GetById_WithFallback_ErrorMessage_UnknownCombination()
         {
             Mock<ITermsQueryService> termQueryService = new Mock<ITermsQueryService>();
             TermsController controller = new TermsController(NullLogger<TermsController>.Instance, termQueryService.Object);

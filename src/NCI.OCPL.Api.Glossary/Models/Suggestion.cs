@@ -1,5 +1,3 @@
-using Nest;
-
 namespace NCI.OCPL.Api.Glossary
 {
     /// <summary>
@@ -11,12 +9,10 @@ namespace NCI.OCPL.Api.Glossary
         /// The term's CDR ID.
         /// </summary>
         /// <value></value>
-        [Number(Name = "term_id")]
         public long TermId { get; set; }
 
         /// <summary>
-        /// Gets or sets the Name of the Glosary Term.
+        /// Gets or sets the Name of the Glossary Term.
         /// </summary>
-        [Keyword(Name = "term_name")]
         public string TermName { get; set; }    }
 }

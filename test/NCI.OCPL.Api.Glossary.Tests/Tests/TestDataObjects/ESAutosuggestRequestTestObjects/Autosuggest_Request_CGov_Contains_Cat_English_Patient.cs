@@ -1,5 +1,4 @@
-using NCI.OCPL.Api.Glossary;
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace NCI.OCPL.Api.Glossary.Tests.ESAutosuggestQueryTestData
 {
@@ -24,7 +23,7 @@ namespace NCI.OCPL.Api.Glossary.Tests.ESAutosuggestQueryTestData
 
         public override int Size => 14;
 
-        public override JObject ExpectedData => JObject.Parse(@"
+        public override JsonNode ExpectedData => JsonNode.Parse(@"
             {
                 ""query"": {
                     ""bool"": {
@@ -58,20 +57,14 @@ namespace NCI.OCPL.Api.Glossary.Tests.ESAutosuggestQueryTestData
                                 }
                             }
                         ],
-                        ""must_not"": [
-                            {
-                                ""prefix"": {
-                                    ""term_name"": {
-                                        ""value"": ""cat""
-                                    }
-                                }
-                            }
-                        ]
+                        ""must_not"": {
+                              ""prefix"": {
+                                  ""term_name"": { ""value"": ""cat"" }
+                              }
+                          }
                     }
                 },
-                ""sort"": [
-                    { ""term_name"": {} }
-                ],
+                ""sort"": { ""term_name"": {} },
                 ""_source"": {
                     ""includes"": [
                         ""term_id"",

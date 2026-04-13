@@ -1,19 +1,17 @@
-using System.Collections.Generic;
-using System.IO;
 using System.Threading.Tasks;
+
 using Moq;
-using NCI.OCPL.Api.Common;
-using NCI.OCPL.Api.Common.Testing;
-using NCI.OCPL.Api.Glossary.Controllers;
-using Newtonsoft.Json;
 using Xunit;
+
+using NCI.OCPL.Api.Common;
+using NCI.OCPL.Api.Glossary.Controllers;
 
 namespace NCI.OCPL.Api.Glossary.Tests
 {
     public class AutosuggestControllerTest
     {
         [Fact]
-        public async void GetSuggestions_ErrorMessage_DictionaryMissing()
+        public async Task GetSuggestions_ErrorMessage_DictionaryMissing()
         {
             Mock<IAutosuggestQueryService> querySvc = new Mock<IAutosuggestQueryService>();
             AutosuggestController controller = new AutosuggestController(querySvc.Object);
@@ -24,7 +22,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         }
 
         [Fact]
-        public async void GetSuggestions_ErrorMessage_LanguageMissing()
+        public async Task GetSuggestions_ErrorMessage_LanguageMissing()
         {
             Mock<IAutosuggestQueryService> querySvc = new Mock<IAutosuggestQueryService>();
             AutosuggestController controller = new AutosuggestController(querySvc.Object);
@@ -35,7 +33,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         }
 
         [Fact]
-        public async void GetSuggestions_ErrorMessage_LanguageBad()
+        public async Task GetSuggestions_ErrorMessage_LanguageBad()
         {
             Mock<IAutosuggestQueryService> querySvc = new Mock<IAutosuggestQueryService>();
             AutosuggestController controller = new AutosuggestController(querySvc.Object);
@@ -46,7 +44,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         }
 
         [Fact]
-        public async void GetSuggestions_ErrorMessage_AudienceType()
+        public async Task GetSuggestions_ErrorMessage_AudienceType()
         {
             Mock<IAutosuggestQueryService> querySvc = new Mock<IAutosuggestQueryService>();
             AutosuggestController controller = new AutosuggestController(querySvc.Object);
@@ -60,7 +58,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// Verify that explicit values passed to the controller are passed in turn to the query service.
         /// </summary>
         [Fact]
-        public async void Verify_Explicit_Values_Passed_to_Service()
+        public async Task Verify_Explicit_Values_Passed_to_Service()
         {
             const string dictionary = "Cancer.gov";
             const AudienceType audience = AudienceType.Patient;
@@ -99,10 +97,10 @@ namespace NCI.OCPL.Api.Glossary.Tests
         }
 
         /// <summary>
-        /// Verify the correct defaults are passed to the query service when no valies are specified for beginsWith, size, and from.
+        /// Verify the correct defaults are passed to the query service when no values are specified for beginsWith, size, and from.
         /// </summary>
         [Fact]
-        public async void Verify_Default_Values_Passed_to_Service()
+        public async Task Verify_Default_Values_Passed_to_Service()
         {
             const string dictionary = "Cancer.gov";
             const AudienceType audience = AudienceType.Patient;
@@ -145,7 +143,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// Verify that negative values for size and from are properly handled before the service is invoked.
         /// </summary>
         [Fact]
-        public async void Verify_Negative_Value_Handling()
+        public async Task Verify_Negative_Value_Handling()
         {
             const string dictionary = "Cancer.gov";
             const AudienceType audience = AudienceType.Patient;
@@ -189,7 +187,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// Verify that passing zero for the  size argument is properly handled before the service is invoked.
         /// </summary>
         [Fact]
-        public async void Verify_Zero_Size_Handling()
+        public async Task Verify_Zero_Size_Handling()
         {
             const string dictionary = "Cancer.gov";
             const AudienceType audience = AudienceType.Patient;
@@ -230,13 +228,13 @@ namespace NCI.OCPL.Api.Glossary.Tests
         }
 
         /// <summary>
-        /// Verify search parameters passed to the controller are passed to the query wihtout modificiation.
+        /// Verify search parameters passed to the controller are passed to the query without modification.
         /// </summary>
         [Theory]
         [InlineData("Cancer.gov", AudienceType.HealthProfessional, "en", "chicken",          MatchType.Begins)]
         [InlineData("Cancer.gov", AudienceType.Patient,            "es", "pollo",            MatchType.Contains)]
         [InlineData("Genetics",  AudienceType.HealthProfessional,  "en", "Are you kidding?", MatchType.Exact)]
-        public async void Verify_Argument_passing(string dictionary, AudienceType audience, string language, string queryText, MatchType matchType)
+        public async Task Verify_Argument_passing(string dictionary, AudienceType audience, string language, string queryText, MatchType matchType)
         {
             const int expecedSizeRequest = 20;
 

@@ -3,11 +3,6 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
-# Custom
-appsettings.*.json
-!integration-tests/**/appsettings.inttest.json
-log/*.txt
-
 # User-specific files
 *.suo
 *.user
@@ -330,8 +325,12 @@ ASALocalRun/
 # NVidia Nsight GPU debugger configuration file
 *.nvuser
 
-.vscode/launch.json
-.vscode/tasks.json
+# Custom
+appsettings.*.json
+!integration-tests/**/appsettings.inttest.json
+log/*.txt
+
+.vscode/
 coverage.json
 lcov.info
 

@@ -4,8 +4,12 @@ using System.Collections.Generic;
 
 namespace NCI.OCPL.Api.Glossary.Tests.ESTermsQueryTestData
 {
+    /// <summary>
+    /// Test data for EsTermsQueryService::Search when results are returned from ES.
+    /// </summary>
     public class Search_S : SearchTermsQueryTestData
     {
+        /// <inheritdoc />
         public override GlossaryTermResults ExpectedData => new GlossaryTermResults() {
             Results = new GlossaryTerm[] {
                 new GlossaryTerm()
@@ -118,6 +122,7 @@ namespace NCI.OCPL.Api.Glossary.Tests.ESTermsQueryTestData
             Links = null
         };
 
+        /// <inheritdoc />
         public override string SearchTestType => "results";
     }
 }

@@ -1,16 +1,23 @@
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace NCI.OCPL.Api.Glossary.Tests.ESTermsQueryTestData
 {
+    /// <summary>
+    /// Test data for ESTermsQueryService GetCount method for Genetics, Health Professional, Spanish terms.
+    /// </summary>
     public class Terms_GetCount_Request_Genetics_HealthProfessional_Spanish : BaseTermsQueryCountTestData
     {
+        /// <inheritdoc />
         public override string DictionaryName => "Genetics";
 
+        /// <inheritdoc />
         public override string Language => "es";
 
+        /// <inheritdoc />
         public override AudienceType Audience => AudienceType.HealthProfessional;
 
-        public override JObject ExpectedData => JObject.Parse(@"
+        /// <inheritdoc />
+        public override JsonNode ExpectedData => JsonNode.Parse(@"
 {
     ""query"": {
         ""bool"": {

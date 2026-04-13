@@ -47,12 +47,5 @@
             }
         ]
     },
-    "num_reduce_phases": 0,
-    "fields": [
-        {},
-        {},
-        {},
-        {},
-        {}
-    ]
+    "num_reduce_phases": 0
 }

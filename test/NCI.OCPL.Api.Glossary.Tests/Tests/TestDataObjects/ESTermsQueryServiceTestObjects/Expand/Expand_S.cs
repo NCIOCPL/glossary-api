@@ -4,8 +4,12 @@ using System.Collections.Generic;
 
 namespace NCI.OCPL.Api.Glossary.Tests.ESTermsQueryTestData
 {
+    /// <summary>
+    /// Test data for TermsQueryService Expand method mocking the response for the letter "S".
+    /// </summary>
     public class Expand_S : ExpandTermsQueryTestData
     {
+        /// <inheritdoc />
         public override GlossaryTermResults ExpectedData => new GlossaryTermResults() {
             Results = new GlossaryTerm[] {
                 new GlossaryTerm()
@@ -118,6 +122,7 @@ namespace NCI.OCPL.Api.Glossary.Tests.ESTermsQueryTestData
             Links = null
         };
 
+        /// <inheritdoc />
         public override string ExpandTestType => "results";
     }
 }

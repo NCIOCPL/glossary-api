@@ -1,23 +1,21 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Text;
+using System.Text.Json.Nodes;
+using System.Threading.Tasks;
 
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
 
-using Elasticsearch.Net;
+using Elastic.Clients.Elasticsearch;
+using Elastic.Transport;
 using Moq;
-using Nest;
-using Nest.JsonNetSerializer;
-using Newtonsoft.Json.Linq;
 using Xunit;
 
 using NCI.OCPL.Api.Common;
 using NCI.OCPL.Api.Common.Testing;
 using NCI.OCPL.Api.Glossary.Models;
 using NCI.OCPL.Api.Glossary.Services;
-
 using NCI.OCPL.Api.Glossary.Tests.ESAutosuggestQueryTestData;
 
 namespace NCI.OCPL.Api.Glossary.Tests
@@ -45,32 +43,26 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// and structures the request body as expected.
         /// </summary>
         [Theory, MemberData(nameof(RequestBeginData))]
-        public async void GetSuggestions_TestBeginsRequestSetup(BaseAutosuggestRequestTestData data)
+        public async Task GetSuggestions_TestBeginsRequestSetup(BaseAutosuggestRequestTestData data)
         {
             Uri esURI = null;
-            string esContentType = String.Empty;
             HttpMethod esMethod = HttpMethod.DELETE; // Basically, something other than the expected value.
 
-            JToken requestBody = null;
+            string requestBody = null;
 
-            ElasticsearchInterceptingConnection conn = new ElasticsearchInterceptingConnection();
-            conn.RegisterRequestHandlerForType<Nest.SearchResponse<Suggestion>>((req, res) =>
-            {
-                // We don't really care about the response for this test.
-                res.Stream = GetMockEmptyResponse();
-                res.StatusCode = 200;
-
-                esURI = req.Uri;
-                esContentType = req.RequestMimeType;
-                esMethod = req.Method;
-                requestBody = conn.GetRequestPost(req);
-            });
-
-            // The URI does not matter, an InMemoryConnection never requests from the server.
-            var pool = new SingleNodeConnectionPool(new Uri("http://localhost:9200"));
-
-            var connectionSettings = new ConnectionSettings(pool, conn, sourceSerializer: JsonNetSerializer.Default);
-            IElasticClient client = new ElasticClient(connectionSettings);
+            var connectionSettings = TestingElasticsearchClientSettingsFactory.Create(
+                ElasticsearchTestingTools.MockEmptyResponseString,
+                200,
+                details =>
+                {
+                  esURI = details.Uri;
+                  esMethod = details.HttpMethod;
+                  if (details.RequestBodyInBytes != null)
+                  {
+                      requestBody = Encoding.UTF8.GetString(details.RequestBodyInBytes);
+                  }
+              });
+            ElasticsearchClient client = new ElasticsearchClient(connectionSettings);
 
             // Setup the mocked Options
             IOptions<GlossaryAPIOptions> clientOptions = GetMockOptions();
@@ -82,31 +74,22 @@ namespace NCI.OCPL.Api.Glossary.Tests
             Suggestion[] result = await query.GetSuggestions(data.DictionaryName, data.Audience, data.Language, data.SearchText, data.MatchType, data.Size);
 
             Assert.Equal("/glossaryv1/_search", esURI.AbsolutePath);
-            Assert.Equal("application/json", esContentType);
             Assert.Equal(HttpMethod.POST, esMethod);
-            Assert.Equal(data.ExpectedData, requestBody, new JTokenEqualityComparer());
+
+            // Compare JSON structures for equivalence
+            var actualJson = JsonNode.Parse(requestBody);
+            Assert.True(JsonNode.DeepEquals(data.ExpectedData, actualJson));
         }
 
 
         /// <summary>
-        /// Test that the ESTermsQueryService responds correctly when ES returns an empty result set.
+        /// Test that the ESAutosuggestQueryService responds correctly when ES returns an empty result set.
         /// </summary>
         [Fact]
-        public async void GetSuggestions_TestEmptyESResults()
+        public async Task GetSuggestions_TestEmptyESResults()
         {
-            ElasticsearchInterceptingConnection conn = new ElasticsearchInterceptingConnection();
-            conn.RegisterRequestHandlerForType<Nest.SearchResponse<Suggestion>>((req, res) =>
-            {
-                // We don't really care about the response for this test.
-                res.Stream = GetMockEmptyResponse();
-                res.StatusCode = 200;
-            });
-
-            // The URI does not matter, an InMemoryConnection never requests from the server.
-            var pool = new SingleNodeConnectionPool(new Uri("http://localhost:9200"));
-
-            var connectionSettings = new ConnectionSettings(pool, conn, sourceSerializer: JsonNetSerializer.Default);
-            IElasticClient client = new ElasticClient(connectionSettings);
+            var connectionSettings = TestingElasticsearchClientSettingsFactory.Create( ElasticsearchTestingTools.MockEmptyResponseString, 200);
+            ElasticsearchClient client = new ElasticsearchClient(connectionSettings);
 
             // Setup the mocked Options
             IOptions<GlossaryAPIOptions> clientOptions = GetMockOptions();
@@ -120,24 +103,13 @@ namespace NCI.OCPL.Api.Glossary.Tests
         }
 
         /// <summary>
-        /// Verify that ESTermsQueryService responds correctly when Elasticsearch returns an error.
+        /// Verify that ESAutosuggestQueryService responds correctly when Elasticsearch returns an error.
         /// </summary>
         [Fact]
-        public async void GetSuggestions_TestErrorResponse()
+        public async Task GetSuggestions_TestErrorResponse()
         {
-            ElasticsearchInterceptingConnection conn = new ElasticsearchInterceptingConnection();
-            conn.RegisterRequestHandlerForType<Nest.SearchResponse<Suggestion>>((req, res) =>
-            {
-                // Simulate an error.
-                res.Stream = null;
-                res.StatusCode = 500;
-            });
-
-            // The URI does not matter, an InMemoryConnection never requests from the server.
-            var pool = new SingleNodeConnectionPool(new Uri("http://localhost:9200"));
-
-            var connectionSettings = new ConnectionSettings(pool, conn, sourceSerializer: JsonNetSerializer.Default);
-            IElasticClient client = new ElasticClient(connectionSettings);
+            var connectionSettings = TestingElasticsearchClientSettingsFactory.Create(string.Empty, 500);
+            ElasticsearchClient client = new ElasticsearchClient(connectionSettings);
 
             // Setup the mocked Options
             IOptions<GlossaryAPIOptions> clientOptions = GetMockOptions();
@@ -152,11 +124,11 @@ namespace NCI.OCPL.Api.Glossary.Tests
         }
 
         /// <summary>
-        /// Verify that ESTermsQueryService responds correctly if Elasticsearch returns a broken
+        /// Verify that ESAutosuggestQueryService responds correctly if Elasticsearch returns a broken
         /// response.
         /// </summary>
         [Fact]
-        public async void GetSuggestions_TestInvalidResponse()
+        public async Task GetSuggestions_TestInvalidResponse()
         {
             string partial = @"{
                     ""took"": 223,
@@ -164,18 +136,9 @@ namespace NCI.OCPL.Api.Glossary.Tests
                     ""_shards"": {
                                 ""total"": 1,
                         ""successful"": 1,";
-            InMemoryConnection conn = new InMemoryConnection(
-                responseBody: Encoding.UTF8.GetBytes(partial),
-                statusCode: 200,
-                exception: null,
-                contentType: "application/json"
-            );
 
-            // The URI does not matter, an InMemoryConnection never requests from the server.
-            var pool = new SingleNodeConnectionPool(new Uri("http://localhost:9200"));
-
-            var connectionSettings = new ConnectionSettings(pool, conn, sourceSerializer: JsonNetSerializer.Default);
-            IElasticClient client = new ElasticClient(connectionSettings);
+            var connectionSettings = TestingElasticsearchClientSettingsFactory.Create(partial, 200);
+            ElasticsearchClient client = new ElasticsearchClient(connectionSettings);
 
             // Setup the mocked Options
             IOptions<GlossaryAPIOptions> clientOptions = GetMockOptions();
@@ -190,7 +153,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         }
 
         /// <summary>
-        /// Mock Elasticsearch configuraiton options.
+        /// Mock Elasticsearch configuration options.
         /// </summary>
         private IOptions<GlossaryAPIOptions> GetMockOptions()
         {
@@ -204,35 +167,6 @@ namespace NCI.OCPL.Api.Glossary.Tests
             );
 
             return clientOptions.Object;
-        }
-
-        /// <summary>
-        /// Simulates a "no results found" response from Elasticsearch so we
-        /// have something for tests where we don't care about the response.
-        /// </summary>
-        private Stream GetMockEmptyResponse()
-        {
-            string empty = @"
-{
-    ""took"": 223,
-    ""timed_out"": false,
-    ""_shards"": {
-        ""total"": 1,
-        ""successful"": 1,
-        ""skipped"": 0,
-        ""failed"": 0
-    },
-    ""hits"": {
-        ""total"": {
-            ""value"": 0,
-            ""relation"": ""eq""
-        },
-        ""max_score"": null,
-        ""hits"": []
-    }
-}";
-            byte[] byteArray = Encoding.UTF8.GetBytes(empty);
-            return new MemoryStream(byteArray);
         }
 
     }

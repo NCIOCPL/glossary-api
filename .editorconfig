@@ -13,3 +13,11 @@ end_of_line = lf
 [*.yml]
 indent_size = 2
 indent_style = space
+
+[*.csproj]
+indent_size = 4
+indent_style = space
+
+[*.cs]
+# Warn on unused variables.
+dotnet_diagnostic.CS0168.severity = warning

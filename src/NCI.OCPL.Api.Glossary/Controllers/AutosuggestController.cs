@@ -50,7 +50,7 @@ namespace NCI.OCPL.Api.Glossary.Controllers
             if(!Enum.IsDefined(typeof(MatchType), matchType))
                 throw new APIErrorException(400, "The 'matchType' parameter must be either 'Begins' or 'Contains'.");
 
-            if (language.ToLower() != "en" && language.ToLower() != "es")
+            if (language.ToLowerInvariant() != "en" && language.ToLowerInvariant() != "es")
                 throw new APIErrorException(400, "Unsupported Language. Valid values are 'en' and 'es'.");
 
             if (size <= 0)

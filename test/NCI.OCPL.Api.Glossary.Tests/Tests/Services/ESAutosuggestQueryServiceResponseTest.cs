@@ -1,21 +1,19 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
+using System.Threading.Tasks;
 
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
 
-using Elasticsearch.Net;
+using Elastic.Clients.Elasticsearch;
+using Elastic.Transport;
 using Moq;
-using Nest;
-using Nest.JsonNetSerializer;
-using Newtonsoft.Json.Linq;
 using Xunit;
 
-using NCI.OCPL.Api.Common;
 using NCI.OCPL.Api.Common.Testing;
 using NCI.OCPL.Api.Glossary.Models;
 using NCI.OCPL.Api.Glossary.Services;
-
 using NCI.OCPL.Api.Glossary.Tests.ESAutosuggestQueryTestData;
 
 namespace NCI.OCPL.Api.Glossary.Tests
@@ -41,31 +39,28 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// and structures the request body as expected.
         /// </summary>
         [Theory, MemberData(nameof(ResponseData))]
-        public async void GetSuggestions_TestBeginsRequestSetup(BaseAutosuggestTestData data)
+        public async Task GetSuggestions_TestBeginsRequestSetup(BaseAutosuggestTestData data)
         {
             Uri esURI = null;
-            string esContentType = String.Empty;
-            HttpMethod esMethod = HttpMethod.DELETE; // Basically, something other than the expected value.
+            HttpMethod esMethod = HttpMethod.DELETE; // Initialize to something other than the expected value.
 
-            JToken requestBody = null;
+            string requestBody = null;
 
-            ElasticsearchInterceptingConnection conn = new ElasticsearchInterceptingConnection();
-            conn.RegisterRequestHandlerForType<Nest.SearchResponse<Suggestion>>((req, res) =>
-            {
-                res.Stream = TestingTools.GetTestFileAsStream("ESAutosuggestQueryResponse/" + data.TestFilename);
-                res.StatusCode = 200;
+            string responseBody = TestingTools.ReadTestFile("ESAutosuggestQueryResponse/" + data.TestFilename);
 
-                esURI = req.Uri;
-                esContentType = req.RequestMimeType;
-                esMethod = req.Method;
-                requestBody = conn.GetRequestPost(req);
-            });
-
-            // The URI does not matter, an InMemoryConnection never requests from the server.
-            var pool = new SingleNodeConnectionPool(new Uri("http://localhost:9200"));
-
-            var connectionSettings = new ConnectionSettings(pool, conn, sourceSerializer: JsonNetSerializer.Default);
-            IElasticClient client = new ElasticClient(connectionSettings);
+            var connectionSettings = TestingElasticsearchClientSettingsFactory.Create(
+                responseBody,
+                200,
+                details =>
+                {
+                  esURI = details.Uri;
+                  esMethod = details.HttpMethod;
+                  if (details.RequestBodyInBytes != null)
+                  {
+                      requestBody = Encoding.UTF8.GetString(details.RequestBodyInBytes);
+                  }
+              });
+            ElasticsearchClient client = new ElasticsearchClient(connectionSettings);
 
             // Setup the mocked Options
             IOptions<GlossaryAPIOptions> clientOptions = GetMockOptions();
@@ -76,10 +71,12 @@ namespace NCI.OCPL.Api.Glossary.Tests
             Suggestion[] result = await query.GetSuggestions("Cancer.gov", AudienceType.Patient, "es", "chicken", MatchType.Contains, 200);
 
             Assert.Equal(data.ExpectedData, result, new ArrayComparer<Suggestion, SuggestionComparer>());
+            Assert.Equal("/glossaryv1/_search", esURI.AbsolutePath);
+            Assert.Equal(HttpMethod.POST, esMethod);
         }
 
         /// <summary>
-        /// Mock Elasticsearch configuraiton options.
+        /// Mock Elasticsearch configuration options.
         /// </summary>
         private IOptions<GlossaryAPIOptions> GetMockOptions()
         {

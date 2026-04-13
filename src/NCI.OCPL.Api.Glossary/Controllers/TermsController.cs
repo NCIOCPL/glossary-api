@@ -71,7 +71,7 @@ namespace NCI.OCPL.Api.Glossary.Controllers
         /// <param name="audience">The intended audience.</param>
         /// <param name="language">The language in which to fetch the details. Valid values are "en" for English and "es" for Spanish.</param>
         /// <param name="id">The term's ID</param>
-        /// <param name="useFallback">Set true to use falback logic if the term isn't available for the specified combination of audience and dictionary.</param>
+        /// <param name="useFallback">Set true to use fallback logic if the term isn't available for the specified combination of audience and dictionary.</param>
         /// <returns>GlossaryTerm object</returns>
         [HttpGet("{dictionary:required}/{audience:required}/{language:required}/{id:long}")]
         public async Task<GlossaryTerm> GetById(string dictionary, AudienceType audience, string language, long id, bool useFallback = false)
@@ -82,9 +82,9 @@ namespace NCI.OCPL.Api.Glossary.Controllers
             }
 
             // Lowercase the dictionary argument for use in fallback option checks and ES query
-            dictionary = dictionary.ToLower();
+            dictionary = dictionary.ToLowerInvariant();
 
-            if (language.ToLower() != "en" && language.ToLower() != "es")
+            if (language.ToLowerInvariant() != "en" && language.ToLowerInvariant() != "es")
                 throw new APIErrorException(400, "Unsupported Language. Please try either 'en' or 'es'");
 
             if (useFallback == false)
@@ -99,7 +99,7 @@ namespace NCI.OCPL.Api.Glossary.Controllers
                     string msg = $"Error encountered for dictionary '{dictionary}', audience '{audience}', language '{language}' and id '{id}."
                       .Replace(Environment.NewLine, String.Empty);
                     _logger.LogError(ex, msg);
-                    throw new APIErrorException(500, "Errors Occured");
+                    throw new APIErrorException(500, "Errors occurred");
                 }
                 if(result != null)
                     return result;
@@ -144,7 +144,7 @@ namespace NCI.OCPL.Api.Glossary.Controllers
                         string msg = $"Error encountered for dictionary '{current.Value.Item1}', audience '{current.Value.Item2}', language '{language}' and id '{id}."
                           .Replace(Environment.NewLine, String.Empty);
                         _logger.LogError(ex, msg);
-                        throw new APIErrorException(500, "Errors Occured");
+                        throw new APIErrorException(500, "Errors occurred");
                     }
                 } while ( current != start );
 
@@ -161,7 +161,7 @@ namespace NCI.OCPL.Api.Glossary.Controllers
         /// <param name="audience">The intended audience.</param>
         /// <param name="language">The language in which to fetch the details. Valid values are "en" for English and "es" for Spanish.</param>
         /// <param name="prettyUrlName">The term's name as a path segment.</param>
-        /// <param name="useFallback">Set true to use falback logic if the term isn't available for the specified combination of audience and dictionary.</param>
+        /// <param name="useFallback">Set true to use fallback logic if the term isn't available for the specified combination of audience and dictionary.</param>
         /// <returns>GlossaryTerm object</returns>
         [HttpGet("{dictionary:required}/{audience:required}/{language:required}/{prettyUrlName}")]
         public async Task<GlossaryTerm> GetByName(string dictionary, AudienceType audience, string language, string prettyUrlName, bool useFallback = false)
@@ -172,9 +172,9 @@ namespace NCI.OCPL.Api.Glossary.Controllers
             }
 
             // Lowercase the dictionary argument for use in fallback option checks and ES query
-            dictionary = dictionary.ToLower();
+            dictionary = dictionary.ToLowerInvariant();
 
-            if (language.ToLower() != "en" && language.ToLower() != "es")
+            if (language.ToLowerInvariant() != "en" && language.ToLowerInvariant() != "es")
                 throw new APIErrorException(400, "Unsupported Language. Please try either 'en' or 'es'");
 
             if (String.IsNullOrWhiteSpace(prettyUrlName))
@@ -193,7 +193,7 @@ namespace NCI.OCPL.Api.Glossary.Controllers
                     string msg = $"Error encountered for dictionary '{dictionary}', audience '{audience}', language '{language}' and pretty url '{prettyUrlName}'."
                       .Replace(Environment.NewLine, String.Empty);
                     _logger.LogError(ex, msg);
-                    throw new APIErrorException(500, "Errors occured");
+                    throw new APIErrorException(500, "Errors occurred");
                 }
                 if(result != null)
                     return result;
@@ -238,7 +238,7 @@ namespace NCI.OCPL.Api.Glossary.Controllers
                         string msg = $"Error encountered for dictionary '{current.Value.Item1}', audience '{current.Value.Item2}', language '{language}' and pretty URL name '{prettyUrlName}'."
                           .Replace(Environment.NewLine, String.Empty);
                         _logger.LogError(ex, msg);
-                        throw new APIErrorException(500, "Errors Occured");
+                        throw new APIErrorException(500, "Errors occurred");
                     }
 
                 } while ( current != start );
@@ -265,7 +265,7 @@ namespace NCI.OCPL.Api.Glossary.Controllers
             if (String.IsNullOrWhiteSpace(dictionary) || String.IsNullOrWhiteSpace(language) || !Enum.IsDefined(typeof(AudienceType), audience))
                 throw new APIErrorException(400, "You must supply a valid dictionary, audience and language.");
 
-            if (language.ToLower() != "en" && language.ToLower() != "es")
+            if (language.ToLowerInvariant() != "en" && language.ToLowerInvariant() != "es")
                 throw new APIErrorException(400, "Unsupported Language. Valid values are 'en' and 'es'.");
 
             if (size <= 0)
@@ -299,7 +299,7 @@ namespace NCI.OCPL.Api.Glossary.Controllers
             if (String.IsNullOrWhiteSpace(dictionary) || String.IsNullOrWhiteSpace(language) || !Enum.IsDefined(typeof(AudienceType), audience))
                 throw new APIErrorException(400, "You must supply a valid dictionary, audience and language.");
 
-            if (language.ToLower() != "en" && language.ToLower() != "es")
+            if (language.ToLowerInvariant() != "en" && language.ToLowerInvariant() != "es")
                 throw new APIErrorException(400, "Unsupported Language. Valid values are 'en' and 'es'.");
 
             if (!Enum.IsDefined(typeof(MatchType), matchType))
@@ -336,7 +336,7 @@ namespace NCI.OCPL.Api.Glossary.Controllers
             if (String.IsNullOrWhiteSpace(dictionary) || String.IsNullOrWhiteSpace(language) || !Enum.IsDefined(typeof(AudienceType), audience))
                 throw new APIErrorException(400, "You must supply a valid dictionary, audience and language");
 
-            if (language.ToLower() != "en" && language.ToLower() != "es")
+            if (language.ToLowerInvariant() != "en" && language.ToLowerInvariant() != "es")
                 throw new APIErrorException(400, "Unsupported Language. Please try either 'en' or 'es'");
 
             if (size <= 0)

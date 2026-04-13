@@ -1,6 +1,4 @@
-using Newtonsoft.Json.Linq;
-
-using NCI.OCPL.Api.Glossary;
+using System.Text.Json.Nodes;
 
 namespace NCI.OCPL.Api.Glossary.Tests.ESAutosuggestQueryTestData
 {
@@ -12,7 +10,7 @@ namespace NCI.OCPL.Api.Glossary.Tests.ESAutosuggestQueryTestData
         /// <summary>
         /// Gets the expected data object. This is what the request is supposed to look like.
         /// </summary>
-        public abstract JObject ExpectedData { get; }
+        public abstract JsonNode ExpectedData { get; }
 
         /// <summary>
         /// The text the mock search suggestion should use.
@@ -20,7 +18,7 @@ namespace NCI.OCPL.Api.Glossary.Tests.ESAutosuggestQueryTestData
         public abstract string SearchText { get; }
 
         /// <summary>
-        /// Should this be a search for terms containg SearchText? Or beginning with?
+        /// Should this be a search for terms containing SearchText? Or beginning with?
         /// Set TRUE for contains.
         /// Set FALSE for begins with.
         /// </summary>

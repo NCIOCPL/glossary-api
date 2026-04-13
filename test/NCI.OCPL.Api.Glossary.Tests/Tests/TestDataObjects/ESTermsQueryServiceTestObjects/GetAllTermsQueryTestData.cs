@@ -1,21 +1,18 @@
-using System;
-using System.Collections.Generic;
-using NCI.OCPL.Api.Glossary;
-
 namespace NCI.OCPL.Api.Glossary.Tests.ESTermsQueryTestData
 {
+    /// <summary>
+    /// Base class for test data for TermsQueryService::GetAll.
+    /// </summary>
     public abstract class GetAllTermsQueryTestData
     {
         /// <summary>
-        /// Gets an instance of the Expected Data object
+        /// The object expected to be returned from GetAll.
         /// </summary>
-        /// <returns></returns>
         public abstract GlossaryTermResults ExpectedData { get; }
 
-/// <summary>
-        /// Gets the type of GetAll test we are performing
+        /// <summary>
+        /// The type of GetAll test we are performing.
         /// </summary>
-        /// <returns></returns>
         public abstract string GetAllTestType { get; }
     }
 }

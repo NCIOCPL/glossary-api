@@ -4,8 +4,12 @@ using System.Collections.Generic;
 
 namespace NCI.OCPL.Api.Glossary.Tests.ESTermsQueryTestData
 {
+    /// <summary>
+    /// Test data for TermsQueryService GetByName method with a specific term.
+    /// </summary>
     public class GetByName_s_phase_fraction : GetByNameTermsQueryTestData
     {
+        /// <inheritdoc />
         public override GlossaryTerm ExpectedData => new GlossaryTerm() {
             TermId = 44771,
             Language = "en",
@@ -27,6 +31,7 @@ namespace NCI.OCPL.Api.Glossary.Tests.ESTermsQueryTestData
             RelatedResources = new IRelatedResource[] { }
         };
 
+        /// <inheritdoc />
         public override string PrettyUrlName => "s-phase-fraction";
     }
 }

@@ -1,13 +1,12 @@
-using System;
 using System.Collections.Generic;
+using System.Text;
+using System.Text.Json.Nodes;
+using System.Threading.Tasks;
 
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
 
-using Elasticsearch.Net;
-using Nest;
-using Nest.JsonNetSerializer;
-using Newtonsoft.Json.Linq;
+using Elastic.Clients.Elasticsearch;
 using Xunit;
 
 using NCI.OCPL.Api.Common.Testing;
@@ -18,6 +17,9 @@ using NCI.OCPL.Api.Common;
 
 namespace NCI.OCPL.Api.Glossary.Tests
 {
+    /// <summary>
+    /// Tests for ESTermsQueryServiceTest::Expand.
+    /// </summary>
     public partial class ESTermsQueryServiceTest
     {
 
@@ -30,20 +32,10 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// Test failure to connect to and retrieve response from API in GetById
         /// </summary>
         [Fact]
-        public async void Expand_TestAPIConnectionFailure()
+        public async Task Expand_TestAPIConnectionFailure()
         {
-            ElasticsearchInterceptingConnection conn = new ElasticsearchInterceptingConnection();
-            conn.RegisterRequestHandlerForType<Nest.SearchResponse<GlossaryTerm>>((req, res) =>
-            {
-                res.StatusCode = 500;
-            });
-
-            // While this has a URI, it does not matter, an InMemoryConnection never requests
-            // from the server.
-            var pool = new SingleNodeConnectionPool(new Uri("http://localhost:9200"));
-
-            var connectionSettings = new ConnectionSettings(pool, conn, sourceSerializer: JsonNetSerializer.Default);
-            IElasticClient client = new ElasticClient(connectionSettings);
+            var connectionSettings = TestingElasticsearchClientSettingsFactory.Create(string.Empty, 500);
+            ElasticsearchClient client = new ElasticsearchClient(connectionSettings);
 
             // Setup the mocked Options
             IOptions<GlossaryAPIOptions> gTermsClientOptions = GetMockOptions();
@@ -58,20 +50,10 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// Test failure to connect to ES or receiving an invalid response from ES in GetById.
         /// </summary>
         [Fact]
-        public async void Expand_TestInvalidResponse()
+        public async Task Expand_TestInvalidResponse()
         {
-            ElasticsearchInterceptingConnection conn = new ElasticsearchInterceptingConnection();
-            conn.RegisterRequestHandlerForType<Nest.SearchResponse<GlossaryTerm>>((req, res) =>
-            {
-
-            });
-
-            // While this has a URI, it does not matter, an InMemoryConnection never requests
-            // from the server.
-            var pool = new SingleNodeConnectionPool(new Uri("http://localhost:9200"));
-
-            var connectionSettings = new ConnectionSettings(pool, conn, sourceSerializer: JsonNetSerializer.Default);
-            IElasticClient client = new ElasticClient(connectionSettings);
+            var connectionSettings = TestingElasticsearchClientSettingsFactory.Create(string.Empty, 0);
+            ElasticsearchClient client = new ElasticsearchClient(connectionSettings);
 
             // Setup the mocked Options
             IOptions<GlossaryAPIOptions> gTermsClientOptions = GetMockOptions();
@@ -91,38 +73,35 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// Test that Expand Request for Elasticsearch is set up correctly.
         /// </summary>
         [Theory, MemberData(nameof(ExpandRequestData))]
-        public async void Expand_TestRequestSetup(ExpandRequestBase data)
+        public async Task Expand_TestRequestSetup(ExpandRequestBase data)
         {
-            JToken actualRequest = null;
+            string requestBody = null;
 
-            ElasticsearchInterceptingConnection conn = new ElasticsearchInterceptingConnection();
-            conn.RegisterRequestHandlerForType<Nest.SearchResponse<GlossaryTerm>>((req, res) =>
-            {
-                res.Stream = TestingTools.GetTestFileAsStream("ESTermsQueryData/Expand/expand_response_results.json");
-                res.StatusCode = 200;
+            string response = TestingTools.ReadTestFile("ESTermsQueryData/Expand/expand_response_results.json");
 
-                actualRequest = conn.GetRequestPost(req);
-            });
+            var connectionSettings = TestingElasticsearchClientSettingsFactory.Create(
+                response,
+                200,
+                callDetails =>
+                {
+                    if (callDetails.RequestBodyInBytes != null)
+                    {
+                        requestBody = Encoding.UTF8.GetString(callDetails.RequestBodyInBytes);
+                    }
+                }
+            );
 
-            // While this has a URI, it does not matter, an InMemoryConnection never requests
-            // from the server.
-            var pool = new SingleNodeConnectionPool(new Uri("http://localhost:9200"));
-
-            var connectionSettings = new ConnectionSettings(pool, conn, sourceSerializer: JsonNetSerializer.Default);
-            IElasticClient client = new ElasticClient(connectionSettings);
+            ElasticsearchClient client = new ElasticsearchClient(connectionSettings);
 
             // Setup the mocked Options
             IOptions<GlossaryAPIOptions> gTermsClientOptions = GetMockOptions();
 
             ESTermsQueryService termsClient = new ESTermsQueryService(client, gTermsClientOptions, new NullLogger<ESTermsQueryService>());
 
-            try
-            {
-                var results = await termsClient.Expand(data.Dictionary, data.Audience, data.LanguageCode, data.ExpandCharacter, data.Size, data.From, data.IncludeAdditionalInfo);
-            }
-            catch (Exception) { }
+            var results = await termsClient.Expand(data.Dictionary, data.Audience, data.LanguageCode, data.ExpandCharacter, data.Size, data.From, data.IncludeAdditionalInfo);
 
-            Assert.Equal(data.ExpectedRequest, actualRequest, new JTokenEqualityComparer());
+            var actualJson = JsonNode.Parse(requestBody);
+            Assert.True(JsonNode.DeepEquals(data.ExpectedRequest, actualJson));
         }
 
         /// <summary>
@@ -131,9 +110,9 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// <param name="data"></param>
         /// <returns></returns>
         [Theory, MemberData(nameof(ExpandData))]
-        public async void Expand_DataLoading(ExpandTermsQueryTestData data)
+        public async Task Expand_DataLoading(ExpandTermsQueryTestData data)
         {
-            IElasticClient client = Expand_GetElasticClientWithData(data.ExpandTestType);
+            ElasticsearchClient client = Expand_GetElasticClientWithData(data.ExpandTestType);
 
             // Setup the mocked Options
             IOptions<GlossaryAPIOptions> gTermsClientOptions = GetMockOptions();
@@ -151,23 +130,14 @@ namespace NCI.OCPL.Api.Glossary.Tests
         ///<summary>
         ///A private method to enrich data from file for GetById
         ///</summary>
-        private IElasticClient Expand_GetElasticClientWithData(string expandTestType)
+        private ElasticsearchClient Expand_GetElasticClientWithData(string expandTestType)
         {
-            ElasticsearchInterceptingConnection conn = new ElasticsearchInterceptingConnection();
-            conn.RegisterRequestHandlerForType<Nest.SearchResponse<GlossaryTerm>>((req, res) =>
-            {
-                //Get the file name for this round
-                res.Stream = TestingTools.GetTestFileAsStream("ESTermsQueryData/Expand/expand_response_" + expandTestType + ".json");
-
-                res.StatusCode = 200;
-            });
-
-            //While this has a URI, it does not matter, an InMemoryConnection never requests
-            //from the server.
-            var pool = new SingleNodeConnectionPool(new Uri("http://localhost:9200"));
-
-            var connectionSettings = new ConnectionSettings(pool, conn, sourceSerializer: JsonNetSerializer.Default);
-            IElasticClient client = new ElasticClient(connectionSettings);
+            string response = TestingTools.ReadTestFile("ESTermsQueryData/Expand/expand_response_" + expandTestType + ".json");
+            var connectionSettings = TestingElasticsearchClientSettingsFactory.Create(
+                response,
+                200
+            );
+            ElasticsearchClient client = new ElasticsearchClient(connectionSettings);
 
             return client;
         }

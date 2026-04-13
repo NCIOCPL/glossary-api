@@ -1,19 +1,15 @@
-using System;
+using Microsoft.Extensions.Logging.Testing;
+using System.IO;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Threading.Tasks;
 
 using Moq;
 using Xunit;
 
-using Microsoft.Extensions.Logging.Testing;
-
 using NCI.OCPL.Api.Common;
-using NCI.OCPL.Api.Glossary;
-using NCI.OCPL.Api.Glossary.Controllers;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System.IO;
 using NCI.OCPL.Api.Common.Testing;
+using NCI.OCPL.Api.Glossary.Controllers;
 
 namespace NCI.OCPL.Api.Glossary.Tests
 {
@@ -21,7 +17,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
     {
 
         [Fact]
-        public async void Search_ErrorMessage_Dictionary()
+        public async Task Search_ErrorMessage_Dictionary()
         {
             Mock<ITermsQueryService> termQueryService = new Mock<ITermsQueryService>();
             TermsController controller = new TermsController(NullLogger<TermsController>.Instance, termQueryService.Object);
@@ -31,7 +27,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
             Assert.Equal("You must supply a valid dictionary, audience and language.", exception.Message);
         }
         [Fact]
-        public async void Search_ErrorMessage_EmptyLanguage()
+        public async Task Search_ErrorMessage_EmptyLanguage()
         {
             Mock<ITermsQueryService> termQueryService = new Mock<ITermsQueryService>();
             TermsController controller = new TermsController(NullLogger<TermsController>.Instance, termQueryService.Object);
@@ -42,7 +38,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         }
 
         [Fact]
-        public async void Search_ErrorMessage_InvalidLanguage()
+        public async Task Search_ErrorMessage_InvalidLanguage()
         {
             Mock<ITermsQueryService> termQueryService = new Mock<ITermsQueryService>();
             TermsController controller = new TermsController(NullLogger<TermsController>.Instance, termQueryService.Object);
@@ -53,7 +49,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         }
 
         [Fact]
-        public async void Search_ErrorMessage_AudienceType(){
+        public async Task Search_ErrorMessage_AudienceType(){
             Mock<ITermsQueryService> termsQueryService = new Mock<ITermsQueryService>();
             TermsController controller = new TermsController(NullLogger<TermsController>.Instance, termsQueryService.Object);
             APIErrorException exception = await Assert.ThrowsAsync<APIErrorException>(
@@ -66,7 +62,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// Verify that Search behaves in the expected manner when only required parameters are passed in.
         /// </summary>
         [Fact]
-        public async void Search_RequiredParametersOnly()
+        public async Task Search_RequiredParametersOnly()
         {
             // Create a mock query that always returns the same result.
             Mock<ITermsQueryService> querySvc = getDumbSearchSvcMock();
@@ -89,7 +85,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// Verify that Search behaves in the expected manner when size is an invalid value.
         /// </Summary>
         [Fact]
-        public async void Search_InvalidMatchType()
+        public async Task Search_InvalidMatchType()
         {
             // Create a mock query that always returns the same result.
             Mock<ITermsQueryService> querySvc = getDumbSearchSvcMock();
@@ -106,7 +102,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// Verify that Search behaves in the expected manner when size is an invalid value.
         /// </Summary>
         [Fact]
-        public async void Search_InvalidSize()
+        public async Task Search_InvalidSize()
         {
             // Create a mock query that always returns the same result.
             Mock<ITermsQueryService> querySvc = getDumbSearchSvcMock();
@@ -129,7 +125,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// Verify that Search behaves in the expected manner when from is an invalid value.
         /// </summary>
         [Fact]
-        public async void Search_InvalidFrom()
+        public async Task Search_InvalidFrom()
         {
             // Create a mock query that always returns the same result.
             Mock<ITermsQueryService> querySvc = getDumbSearchSvcMock();
@@ -152,7 +148,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// Verify that Search behaves in the expected manner when requestedFields is not specified.
         /// </summary>
         [Fact]
-        public async void Search_DefaultRequestedFields()
+        public async Task Search_DefaultRequestedFields()
         {
             // Create a mock query that always returns the same result.
             Mock<ITermsQueryService> querySvc = getDumbSearchSvcMock();
@@ -176,7 +172,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// and returns the correct response for the specified parameters.
         /// </summary>
         [Fact]
-        public async void Search_HandlesResults()
+        public async Task Search_HandlesResults()
         {
             GlossaryTermResults glossaryTermResults = new GlossaryTermResults() {
                 Results = new GlossaryTerm[] {
@@ -295,8 +291,8 @@ namespace NCI.OCPL.Api.Glossary.Tests
 
 
             GlossaryTermResults termResults = await controller.Search("Cancer.gov", AudienceType.Patient, "en", "chicken", MatchType.Begins, 5, 0, true );
-            JObject actual = JObject.Parse(JsonConvert.SerializeObject(termResults));
-            JObject expected = JObject.Parse(File.ReadAllText(TestingTools.GetPathToTestFile("TermsControllerData/TestData_Expand.json")));
+            JsonNode actual = JsonNode.Parse(JsonSerializer.Serialize(termResults));
+            JsonNode expected = JsonNode.Parse(File.ReadAllText(TestingTools.GetPathToTestFile("TermsControllerData/TestData_Expand.json")));
 
             // Verify that the service layer is called:
             //  a) with the expected values.
@@ -309,7 +305,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
             Assert.Equal(glossaryTermResults.Results, termResults.Results, new GlossaryTermComparer());
             Assert.Equal(glossaryTermResults.Meta.TotalResults, termResults.Meta.TotalResults);
             Assert.Equal(glossaryTermResults.Meta.From, termResults.Meta.From);
-            Assert.Equal(expected, actual, new JTokenEqualityComparer());
+            Assert.True(JsonNode.DeepEquals(expected, actual));
         }
 
         /// <summary>

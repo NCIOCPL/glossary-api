@@ -3,17 +3,22 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+
+using Elastic.Clients.Elasticsearch;
+using Elastic.Clients.Elasticsearch.Core.Search;
+using Elastic.Clients.Elasticsearch.QueryDsl;
+
 using NCI.OCPL.Api.Common;
 using NCI.OCPL.Api.Glossary.Models;
-using Nest;
 
 namespace NCI.OCPL.Api.Glossary.Services
 {
 
     /// <summary>
-    /// Elasticsearch implementation of the service for retrieveing multiple
+    /// Elasticsearch implementation of the service for retrieving multiple
     /// GlossaryTerm objects.
     /// </summary>
     public class ESTermsQueryService : ITermsQueryService
@@ -40,7 +45,7 @@ namespace NCI.OCPL.Api.Glossary.Services
         /// <summary>
         /// The elasticsearch client
         /// </summary>
-        private IElasticClient _elasticClient;
+        private ElasticsearchClient _elasticClient;
 
         /// <summary>
         /// The API options.
@@ -55,7 +60,7 @@ namespace NCI.OCPL.Api.Glossary.Services
         /// <summary>
         /// Constructor.
         /// </summary>
-        public ESTermsQueryService(IElasticClient client,IOptions<GlossaryAPIOptions> apiOptionsAccessor,
+        public ESTermsQueryService(ElasticsearchClient client, IOptions<GlossaryAPIOptions> apiOptionsAccessor,
             ILogger<ESTermsQueryService> logger)
         {
             _elasticClient = client;
@@ -69,33 +74,40 @@ namespace NCI.OCPL.Api.Glossary.Services
         /// <param name="audience">Patient or Healthcare provider</param>
         /// <param name="language">The language in which the details needs to be fetched</param>
         /// <param name="id">The Id for the term</param>
-        /// <returns>An object of GlossaryTerm</returns>
+        /// <returns>The GlossaryTerm or null if not found.</returns>
         /// </summary>
         public async Task<GlossaryTerm> GetById(string dictionary, AudienceType audience, string language, long id)
         {
-            IGetResponse<GlossaryTerm> response = null;
+            GetResponse<GlossaryTerm> response = null;
 
             try
             {
-                string idValue = $"{id}_{dictionary?.ToLower()}_{language?.ToLower()}_{audience.ToString().ToLower()}";
-                response = await _elasticClient.GetAsync<GlossaryTerm>(new DocumentPath<GlossaryTerm>(idValue),
-                        g => g.Index( this._apiOptions.AliasName ));
+                string idValue = $"{id}_{dictionary?.ToLowerInvariant()}_{language?.ToLowerInvariant()}_{audience.ToString().ToLowerInvariant()}";
+                response = await _elasticClient.GetAsync<GlossaryTerm>(idValue, g => g.Index(this._apiOptions.AliasName));
             }
             catch (Exception ex)
             {
-                String msg = $"Could not search dictionary '{dictionary}', audience '{audience}', language '{language}' and id '{id}."
+                String msg = $"Could not search dictionary '{dictionary}', audience '{audience}', language '{language}' and id '{id}'."
                   .Replace(Environment.NewLine, String.Empty);
                 _logger.LogError($"Error searching index: '{this._apiOptions.AliasName}'.");
                 _logger.LogError(ex, msg);
-                throw;
+                throw new APIInternalException(msg);
             }
 
-            if (!response.ApiCall.Success)
+            // This is a little weird because "Not Found" is considered a "successful" response
+            // as in "succeeded in looking for the term, and it just doesn't exist".
+            // So first we check whether the response was successful (versus something like a 500 error),
+            // and then we check whether the term was found.
+            if (!response.ApiCallDetails.HasSuccessfulStatusCode)
             {
-                String msg = $"Invalid Elasticsearch response for dictionary '{dictionary}', audience '{audience}', language '{language}' and id '{id}.\n\n{response.DebugInformation}"
+                String msg = $"Invalid Elasticsearch response for dictionary '{dictionary}', audience '{audience}', language '{language}' and id '{id}'.\n\n{response.DebugInformation}"
                   .Replace(Environment.NewLine, String.Empty);
                 _logger.LogError(msg);
                 throw new APIInternalException(msg);
+            }
+            else if (!response.Found)
+            {
+                return null;
             }
 
             return response.Source;
@@ -112,41 +124,44 @@ namespace NCI.OCPL.Api.Glossary.Services
         public async Task<GlossaryTerm> GetByName(string dictionary, AudienceType audience, string language, string prettyUrlName)
         {
             // Set up the SearchRequest to send to elasticsearch.
-            Indices index = Indices.Index(new string[] { this._apiOptions.AliasName});
-            SearchRequest request = new SearchRequest(index)
+            Indices index = Indices.Index(this._apiOptions.AliasName);
+
+            var query = new BoolQuery
             {
-                Query = new TermQuery {Field = "language", Value = language.ToString()} &&
-                        new TermQuery {Field = "audience", Value = audience.ToString()} &&
-                        new TermQuery {Field = "dictionary", Value = dictionary.ToString()} &&
-                        new TermQuery {Field = "pretty_url_name", Value = prettyUrlName.ToString()}
-                ,
-                Sort = new List<ISort>
+                Must = new Query[]
                 {
-                    new FieldSort { Field = "term_name" }
+                    new TermQuery { Field = "language", Value = language.ToString() },
+                    new TermQuery { Field = "audience", Value = audience.ToString() },
+                    new TermQuery { Field = "dictionary", Value = dictionary.ToString() },
+                    new TermQuery { Field = "pretty_url_name", Value = prettyUrlName.ToString() }
                 }
             };
 
-            ISearchResponse<GlossaryTerm> response = null;
+            SearchRequestDescriptor<GlossaryTerm> request = new SearchRequestDescriptor<GlossaryTerm>(index)
+                .Query(query)
+                .Sort(new FieldSort(new Field("term_name")));
+
+            SearchResponse<GlossaryTerm> response = null;
             try
             {
                 response = await _elasticClient.SearchAsync<GlossaryTerm>(request);
             }
             catch (Exception ex)
             {
-                String msg = $"Could not search dictionary '{dictionary}', audience '{audience}', language '{language}', pretty URL name '{prettyUrlName}'."
-                  .Replace(Environment.NewLine, String.Empty);
+                String msg = ($"Unexpected error while searching dictionary '{dictionary}', audience '{audience}', language '{language}', pretty URL name '{prettyUrlName}'."
+                  .Replace(Environment.NewLine, String.Empty));
                 _logger.LogError($"Error searching index: '{this._apiOptions.AliasName}'.");
                 _logger.LogError(ex, msg);
-                throw;
+                throw new APIInternalException(msg);
             }
 
-            if (!response.IsValid)
+            if (!response.IsValidResponse)
             {
                 string msg = $"Invalid Elasticsearch response for dictionary '{dictionary}', audience '{audience}', language '{language}', pretty URL name '{prettyUrlName}'."
                   .Replace(Environment.NewLine, String.Empty)
                   + $"\n\n{response.DebugInformation}";
                 _logger.LogError(msg);
-                throw new APIInternalException("errors occured");
+                throw new APIInternalException("errors occurred");
             }
 
             GlossaryTerm glossaryTerm = new GlossaryTerm();
@@ -165,7 +180,7 @@ namespace NCI.OCPL.Api.Glossary.Services
                 string msg = $"Multiple results for dictionary '{dictionary}', audience '{audience}', language '{language}', pretty URL name '{prettyUrlName}'."
                   .Replace(Environment.NewLine, String.Empty);
                 _logger.LogError(msg);
-                throw new APIInternalException("errors occured");
+                throw new APIInternalException("errors occurred");
             }
 
             return glossaryTerm;
@@ -185,31 +200,29 @@ namespace NCI.OCPL.Api.Glossary.Services
         {
             // Elasticsearch knows how to figure out what the ElasticSearch name is for
             // a given field when given a PropertyInfo.
-            Field[] requestedESFields = (includeAdditionalInfo ? ALL_FIELDS : DEFAULT_FIELDS)
-                                            .Select(pi => new Field(pi))
-                                            .ToArray();
+            PropertyInfo[] requestedESFields = (includeAdditionalInfo ? ALL_FIELDS : DEFAULT_FIELDS).ToArray();
 
             // Set up the SearchRequest to send to elasticsearch.
-            Indices index = Indices.Index(new string[] { this._apiOptions.AliasName});
-            SearchRequest request = new SearchRequest(index)
+            Indices index = Indices.Index(this._apiOptions.AliasName);
+
+            var query = new BoolQuery
             {
-                Query = new TermQuery {Field = "language", Value = language.ToString()} &&
-                        new TermQuery {Field = "audience", Value = audience.ToString()} &&
-                        new TermQuery {Field = "dictionary", Value = dictionary.ToString()}
-                ,
-                Sort = new List<ISort>
+                Must = new Query[]
                 {
-                    new FieldSort { Field = "term_name" }
-                },
-                Size = size,
-                From = from,
-                Source = new SourceFilter
-                {
-                    Includes = requestedESFields
+                    new TermQuery { Field = "language", Value = language.ToString() },
+                    new TermQuery { Field = "audience", Value = audience.ToString() },
+                    new TermQuery { Field = "dictionary", Value = dictionary.ToString() }
                 }
             };
 
-            ISearchResponse<GlossaryTerm> response = null;
+            SearchRequestDescriptor<GlossaryTerm> request = new SearchRequestDescriptor<GlossaryTerm>(index)
+                .Query(query)
+                .Sort(new FieldSort(new Field("term_name")))
+                .Size(size)
+                .From(from)
+                .Source(new SourceFilter{ Includes = requestedESFields });
+
+            SearchResponse<GlossaryTerm> response = null;
             try
             {
                 response = await _elasticClient.SearchAsync<GlossaryTerm>(request);
@@ -223,12 +236,12 @@ namespace NCI.OCPL.Api.Glossary.Services
                 throw new APIErrorException(500, msg);
             }
 
-            if (!response.IsValid)
+            if (!response.IsValidResponse)
             {
                 String msg = $"Invalid response when getting dictionary '{dictionary}', audience '{audience}', language '{language}', size '{size}', from '{from}'."
                   .Replace(Environment.NewLine, String.Empty);
                 _logger.LogError(msg);
-                throw new APIErrorException(500, "errors occured");
+                throw new APIErrorException(500, "errors occurred");
             }
 
             GlossaryTermResults glossaryTermResults = new GlossaryTermResults();
@@ -251,7 +264,7 @@ namespace NCI.OCPL.Api.Glossary.Services
                 };
             }
             else if (response.Total == 0) {
-                // Add the defualt value of empty GlossaryTerm list.
+                // Add the default value of empty GlossaryTerm list.
                 glossaryTermResults.Results = new GlossaryTerm[] {};
 
                 // Add the metadata for the returned results
@@ -270,7 +283,7 @@ namespace NCI.OCPL.Api.Glossary.Services
         /// <param name="audience">Patient or Healthcare provider</param>
         /// <param name="language">The language in which the details needs to be fetched</param>
         /// <param name="query">The search query</param>
-        /// <param name="matchType">Defines if the search should begin with or contain the key word</param>
+        /// <param name="matchType">Defines if the search should begin with or contain the keyword</param>
         /// <param name="size">Defines the size of the search</param>
         /// <param name="from">Defines the Offset for search</param>
         /// <param name="includeAdditionalInfo">If true, the RelatedResources and Media fields will be populated. Else, they will be empty.</param>
@@ -280,44 +293,48 @@ namespace NCI.OCPL.Api.Glossary.Services
         {
             // Elasticsearch knows how to figure out what the ElasticSearch name is for
             // a given field when given a PropertyInfo.
-            Field[] requestedESFields = (includeAdditionalInfo ? ALL_FIELDS : DEFAULT_FIELDS)
-                                            .Select(pi => new Field(pi))
-                                            .ToArray();
+            PropertyInfo[] requestedESFields = (includeAdditionalInfo ? ALL_FIELDS : DEFAULT_FIELDS).ToArray();
 
             // Set up the SearchRequest to send to elasticsearch.
-            Indices index = Indices.Index(new string[] { this._apiOptions.AliasName});
+            Indices index = Indices.Index(this._apiOptions.AliasName);
 
-            // Figure out the specific term subquery based on the match type.
-            QueryBase termSubquery;
-            switch (matchType)
+            // Build the Must queries based on the match type
+            List<Query> mustQueries = new List<Query>
             {
-                case MatchType.Begins: termSubquery = new PrefixQuery { Field = "term_name", Value = query }; break;
-                case MatchType.Contains: termSubquery = new MatchQuery { Field = "term_name._contain", Query = query }; break;
-                case MatchType.Exact: termSubquery = new TermQuery { Field = "term_name", Value = query }; break;
-                default:
-                    throw new ArgumentException($"Uknown matchType value '${matchType}'.");
-            }
-
-            SearchRequest request = new SearchRequest(index)
-            {
-                Query = new TermQuery {Field = "language", Value = language.ToString()} &&
-                        new TermQuery {Field = "audience", Value = audience.ToString()} &&
-                        new TermQuery {Field = "dictionary", Value = dictionary.ToString()} &&
-                        termSubquery
-                ,
-                Sort = new List<ISort>
-                {
-                    new FieldSort { Field = "term_name" }
-                },
-                Size = size,
-                From = from,
-                Source = new SourceFilter
-                {
-                    Includes = requestedESFields
-                }
+                new TermQuery { Field = "language", Value = language.ToString() },
+                new TermQuery { Field = "audience", Value = audience.ToString() },
+                new TermQuery { Field = "dictionary", Value = dictionary.ToString() }
             };
 
-            ISearchResponse<GlossaryTerm> response = null;
+            // Add the match type specific query
+            switch (matchType)
+            {
+                case MatchType.Begins:
+                    mustQueries.Add(new PrefixQuery { Field = "term_name", Value = query });
+                    break;
+                case MatchType.Contains:
+                    mustQueries.Add(new MatchQuery { Field = "term_name._contain", Query = query });
+                    break;
+                case MatchType.Exact:
+                    mustQueries.Add(new TermQuery { Field = "term_name", Value = query });
+                    break;
+                default:
+                    throw new ArgumentException($"Unknown matchType value '{matchType}'.");
+            }
+
+            var boolQuery = new BoolQuery
+            {
+                Must = mustQueries.ToArray()
+            };
+
+            SearchRequestDescriptor<GlossaryTerm> request = new SearchRequestDescriptor<GlossaryTerm>(index)
+                .Query(boolQuery)
+                .Sort(new FieldSort(new Field("term_name")))
+                .Size(size)
+                .From(from)
+                .Source(new SourceFilter{ Includes = requestedESFields });
+
+            SearchResponse<GlossaryTerm> response = null;
             try
             {
                 response = await _elasticClient.SearchAsync<GlossaryTerm>(request);
@@ -331,12 +348,12 @@ namespace NCI.OCPL.Api.Glossary.Services
                 throw new APIErrorException(500, msg);
             }
 
-            if (!response.IsValid)
+            if (!response.IsValidResponse)
             {
                 String msg = $"Invalid response when searching for dictionary '{dictionary}', audience '{audience}', language '{language}', query '{query}', size '{size}', from '{from}'."
                   .Replace(Environment.NewLine, String.Empty);
                 _logger.LogError(msg);
-                throw new APIErrorException(500, "errors occured");
+                throw new APIErrorException(500, "errors occurred");
             }
 
             GlossaryTermResults glossaryTermResults = new GlossaryTermResults();
@@ -359,7 +376,7 @@ namespace NCI.OCPL.Api.Glossary.Services
                 };
             }
             else if (response.Total == 0) {
-                // Add the defualt value of empty GlossaryTerm list.
+                // Add the default value of empty GlossaryTerm list.
                 glossaryTermResults.Results = new GlossaryTerm[] {};
 
                 // Add the metadata for the returned results
@@ -389,32 +406,30 @@ namespace NCI.OCPL.Api.Glossary.Services
         {
             // Elasticsearch knows how to figure out what the ElasticSearch name is for
             // a given field when given a PropertyInfo.
-            Field[] requestedESFields = (includeAdditionalInfo ? ALL_FIELDS : DEFAULT_FIELDS)
-                                            .Select(pi => new Field(pi))
-                                            .ToArray();
+            PropertyInfo[] requestedESFields = (includeAdditionalInfo ? ALL_FIELDS : DEFAULT_FIELDS).ToArray();
 
             // Set up the SearchRequest to send to elasticsearch.
-            Indices index = Indices.Index(new string[] { this._apiOptions.AliasName});
-            SearchRequest request = new SearchRequest(index)
+            Indices index = Indices.Index(this._apiOptions.AliasName);
+
+            var query = new BoolQuery
             {
-                Query = new TermQuery {Field = "language", Value = language.ToString()} &&
-                        new TermQuery {Field = "audience", Value = audience.ToString()} &&
-                        new TermQuery {Field = "dictionary", Value = dictionary.ToString()} &&
-                        new TermQuery {Field = "first_letter", Value = expandCharacter.ToString()}
-                ,
-                Sort = new List<ISort>
+                Must = new Query[]
                 {
-                    new FieldSort { Field = "term_name" }
-                },
-                Size = size,
-                From = from,
-                Source = new SourceFilter
-                {
-                    Includes = requestedESFields
+                    new TermQuery { Field = "language", Value = language.ToString() },
+                    new TermQuery { Field = "audience", Value = audience.ToString() },
+                    new TermQuery { Field = "dictionary", Value = dictionary.ToString() },
+                    new TermQuery { Field = "first_letter", Value = expandCharacter.ToString() }
                 }
             };
 
-            ISearchResponse<GlossaryTerm> response = null;
+            SearchRequestDescriptor<GlossaryTerm> request = new SearchRequestDescriptor<GlossaryTerm>(index)
+                .Query(query)
+                .Sort(new FieldSort(new Field("term_name")))
+                .Size(size)
+                .From(from)
+                .Source(new SourceFilter { Includes = requestedESFields });
+
+            SearchResponse<GlossaryTerm> response = null;
             try
             {
                 response = await _elasticClient.SearchAsync<GlossaryTerm>(request);
@@ -428,12 +443,12 @@ namespace NCI.OCPL.Api.Glossary.Services
                 throw new APIErrorException(500, msg);
             }
 
-            if (!response.IsValid)
+            if (!response.IsValidResponse)
             {
                 String msg = $"Invalid response when searching for '{dictionary}', audience '{audience}', language '{language}', character '{expandCharacter}', size '{size}', from '{from}'."
                   .Replace(Environment.NewLine, String.Empty);
                 _logger.LogError(msg);
-                throw new APIErrorException(500, "errors occured");
+                throw new APIErrorException(500, "errors occurred");
             }
 
             GlossaryTermResults glossaryTermResults = new GlossaryTermResults();
@@ -456,7 +471,7 @@ namespace NCI.OCPL.Api.Glossary.Services
                 };
             }
             else if (response.Total == 0) {
-                // Add the defualt value of empty GlossaryTerm list.
+                // Add the default value of empty GlossaryTerm list.
                 glossaryTermResults.Results = new GlossaryTerm[] {};
 
                 // Add the metadata for the returned results
@@ -479,18 +494,23 @@ namespace NCI.OCPL.Api.Glossary.Services
         public async Task<long> GetCount(string dictionary, AudienceType audience, string language)
         {
             // Set up the count request to send to elasticsearch.
-            Indices index = Indices.Index(new string[] { this._apiOptions.AliasName });
+            Indices index = Indices.Index(this._apiOptions.AliasName);
             CountResponse response = null;
             try
             {
-                response = await _elasticClient.CountAsync<GlossaryTerm>( s => s
-                    .Index(index)
-                    .Query(q =>
-                        q.Term(t => t.Field("language").Value(language)) &&
-                        q.Term(t => t.Field("audience").Value(audience)) &&
-                        q.Term(t => t.Field("dictionary").Value(dictionary))
-                    )
-                );
+                var query = new BoolQuery
+                {
+                    Must = new Query[]
+                    {
+                        new TermQuery { Field = "language", Value = language },
+                        new TermQuery { Field = "audience", Value = audience.ToString() },
+                        new TermQuery { Field = "dictionary", Value = dictionary }
+                    }
+                };
+
+                CountRequestDescriptor<GlossaryTerm> request = new CountRequestDescriptor<GlossaryTerm>(index)
+                    .Query(query);
+                response = await _elasticClient.CountAsync(request);
             }
             catch (Exception ex)
             {
@@ -501,12 +521,12 @@ namespace NCI.OCPL.Api.Glossary.Services
                 throw new APIErrorException(500, msg);
             }
 
-            if(!response.IsValid)
+            if(!response.IsValidResponse)
             {
                 String msg = $"Invalid response when searching for dictionary '{dictionary}', audience '{audience}', language '{language}'"
                   .Replace(Environment.NewLine, String.Empty);
                 _logger.LogError(msg);
-                throw new APIErrorException(500, "errors occured");
+                throw new APIErrorException(500, "errors occurred");
             }
 
             return response.Count;

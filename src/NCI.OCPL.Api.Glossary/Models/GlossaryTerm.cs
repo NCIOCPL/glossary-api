@@ -1,6 +1,4 @@
-using Nest;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+using System.Text.Json.Serialization;
 
 namespace NCI.OCPL.Api.Glossary
 {
@@ -11,78 +9,66 @@ namespace NCI.OCPL.Api.Glossary
     {
 
         /// <summary>
-        /// Gets or sets the Id for the Glosary Term
+        /// Gets or sets the Id for the Glossary Term
         /// </summary>
-        [Number(NumberType.Long, Name = "term_id")]
         public long TermId { get; set; }
 
         /// <summary>
-        /// Gets or sets the Language for the Glosary Term
+        /// Gets or sets the Language for the Glossary Term
         /// </summary>
-        [Keyword(Name = "language")]
         public string Language { get; set; }
 
         /// <summary>
-        /// Gets or sets the Dictionary for the Glosary Term
+        /// Gets or sets the Dictionary for the Glossary Term
         /// </summary>
-        [Keyword(Name = "dictionary")]
         public string Dictionary { get; set; }
 
         /// <summary>
-        /// Gets or sets the AudienceType for the Glosary Term
+        /// Gets or sets the AudienceType for the Glossary Term
         /// </summary>
-        [Nested(Name = "audience")]
-        [JsonConverter(typeof(StringEnumConverter))]
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public AudienceType Audience { get; set; }
 
         /// <summary>
-        /// Gets or sets the TermName for the Glosary Term
+        /// Gets or sets the TermName for the Glossary Term
         /// </summary>
-        [Keyword(Name = "term_name")]
         public string TermName { get; set; }
 
         /// <summary>
-        /// Gets or sets the FirstLetter for the Glosary Term
+        /// Gets or sets the FirstLetter for the Glossary Term
         /// </summary>
-        [Keyword(Name = "first_letter")]
         public string FirstLetter { get; set; }
 
         /// <summary>
-        /// Gets or sets the prettyUrlName for the Glosary Term
+        /// Gets or sets the prettyUrlName for the Glossary Term
         /// </summary>
-        [Keyword(Name = "pretty_url_name")]
         public string  PrettyUrlName { get; set; }
 
         /// <summary>
-        /// Gets or sets the pronunciation for the Glosary Term
+        /// Gets or sets the pronunciation for the Glossary Term
         /// </summary>
-        [Nested(Name = "pronunciation")]
         public Pronunciation Pronunciation  { get; set; }
 
         /// <summary>
-        /// Gets or sets the Definition for the Glosary Term
+        /// Gets or sets the Definition for the Glossary Term
         /// </summary>
-        [Nested(Name = "definition")]
         public Definition Definition  { get; set; }
 
         /// <summary>
         /// Gets or sets the translations of this term.
         /// </summary>
-        [Nested(Name = "other_languages")]
         public TermOtherLanguage[] OtherLanguages { get; set; } = new TermOtherLanguage[] { };
 
         /// <summary>
-        /// Gets or sets the Definition for the Glosary Term
+        /// Gets or sets the Definition for the Glossary Term
         /// </summary>
-        [Nested(Name = "related_resources")]
-        [JsonProperty(ItemConverterType = typeof(RelatedResourceJsonConverter))]
+        [JsonConverter(typeof(RelatedResourceJsonConverter))]
         public IRelatedResource[] RelatedResources  { get; set; } = new IRelatedResource[] { };
 
         /// <summary>
-        /// Gets or sets the Definition for the Glosary Term
+        /// Gets or sets the Definition for the Glossary Term
         /// </summary>
-        [Nested(Name = "media")]
-        [JsonProperty(ItemConverterType = typeof(MediaJsonConverter))]
+        [JsonConverter(typeof(MediaJsonConverter))]
         public IMedia[] Media  { get; set; } = new IMedia[] { };
 
         /// <summary>

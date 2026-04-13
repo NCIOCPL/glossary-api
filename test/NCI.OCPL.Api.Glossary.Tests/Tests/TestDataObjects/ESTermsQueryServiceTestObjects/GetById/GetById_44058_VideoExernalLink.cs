@@ -3,14 +3,23 @@ using NCI.OCPL.Api.Glossary;
 
 namespace NCI.OCPL.Api.Glossary.Tests.ESTermsQueryTestData
 {
+    /// <summary>
+    /// Test data for TermsQueryService GetById method with a term that has media items and an external link in the related resources.
+    /// </summary>
     public class GetById_44058_VideoExernalLink : BaseTermsQueryTestData
     {
+        /// <inheritdoc />
         public override string DictionaryName => "cancer.gov";
+        /// <inheritdoc />
         public override AudienceType Audience => AudienceType.Patient;
+        /// <inheritdoc />
         public override long TermID => 44058L;
+        /// <inheritdoc />
         public override string ESTermID => "44058_cancer.gov_en_patient";
+        /// <inheritdoc />
         public override string Language => "en";
 
+        /// <inheritdoc />
         public override GlossaryTerm ExpectedData => new GlossaryTerm()
         {
             TermId = 44058L,

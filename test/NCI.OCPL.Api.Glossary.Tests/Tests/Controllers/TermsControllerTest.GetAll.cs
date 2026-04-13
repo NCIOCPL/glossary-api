@@ -1,13 +1,11 @@
-using System;
+using Microsoft.Extensions.Logging.Testing;
+using System.Threading.Tasks;
 
 using Moq;
 using Xunit;
 
-using Microsoft.Extensions.Logging.Testing;
-
 using NCI.OCPL.Api.Common;
 using NCI.OCPL.Api.Glossary.Controllers;
-using System.Threading.Tasks;
 
 namespace NCI.OCPL.Api.Glossary.Tests
 {
@@ -15,7 +13,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
     {
 
         [Fact]
-        public async void GetAll_Error_DictionaryMissing()
+        public async Task GetAll_Error_DictionaryMissing()
         {
             Mock<ITermsQueryService> querySvc = new Mock<ITermsQueryService>();
 
@@ -28,7 +26,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         }
 
         [Fact]
-        public async void GetAll_Error_LanguageMissing()
+        public async Task GetAll_Error_LanguageMissing()
         {
             Mock<ITermsQueryService> querySvc = new Mock<ITermsQueryService>();
 
@@ -41,7 +39,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         }
 
         [Fact]
-        public async void GetAll_Error_LanguageBad()
+        public async Task GetAll_Error_LanguageBad()
         {
             Mock<ITermsQueryService> querySvc = new Mock<ITermsQueryService>();
 
@@ -58,7 +56,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// aren't set in the call.
         /// </Summary>
         [Fact]
-        public async void GetAll_Default_Parameters()
+        public async Task GetAll_Default_Parameters()
         {
             // Create a mock query that always returns the same result.
             Mock<ITermsQueryService> querySvc = new Mock<ITermsQueryService>();
@@ -93,7 +91,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
         /// are set to explicit values
         /// </Summary>
         [Fact]
-        public async void GetAll_Specified_Parameters()
+        public async Task GetAll_Specified_Parameters()
         {
             // Create a mock query that always returns the same result.
             Mock<ITermsQueryService> querySvc = new Mock<ITermsQueryService>();

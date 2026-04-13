@@ -1,21 +1,18 @@
-using System;
-using System.Collections.Generic;
-using NCI.OCPL.Api.Glossary;
-
 namespace NCI.OCPL.Api.Glossary.Tests.ESTermsQueryTestData
 {
+    /// <summary>
+    /// Base class for test data for the ESTermsQueryService Search method.
+    /// </summary>
     public abstract class SearchTermsQueryTestData
     {
         /// <summary>
-        /// Gets an instance of the Expected Data object
+        /// The data structure the Search method should return when given the test data response from ES.
         /// </summary>
-        /// <returns></returns>
         public abstract GlossaryTermResults ExpectedData { get; }
 
-/// <summary>
-        /// Gets the type of Search test we are performing
+        /// <summary>
+        /// Gets the type of Search test we are performing.  Used for constructing the file name for the test data response from ES.
         /// </summary>
-        /// <returns></returns>
         public abstract string SearchTestType { get; }
     }
 }

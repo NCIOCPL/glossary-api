@@ -1,21 +1,18 @@
-using System;
-using System.Collections.Generic;
-using NCI.OCPL.Api.Glossary;
-
 namespace NCI.OCPL.Api.Glossary.Tests.ESTermsQueryTestData
 {
+    /// <summary>
+    /// Base class for test data for TermsQueryService::GetByName.
+    /// </summary>
     public abstract class GetByNameTermsQueryTestData
     {
         /// <summary>
-        /// Gets an instance of the Expected Data object
+        /// The object expected to be returned from GetByName.
         /// </summary>
-        /// <returns></returns>
         public abstract GlossaryTerm ExpectedData { get; }
 
         /// <summary>
-        /// Gets the pretty URL name for the object
+        /// The pretty URL name of the object.
         /// </summary>
-        /// <returns></returns>
         public abstract string PrettyUrlName { get; }
     }
 }

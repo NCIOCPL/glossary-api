@@ -1,24 +1,35 @@
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace NCI.OCPL.Api.Glossary.Tests
 {
+    /// <summary>
+    /// Test data for TermsQueryService Expand method when IncludeAdditionalInfo is true.
+    /// </summary>
     public class ExpandRequestAdditionalInfo : ExpandRequestBase
     {
+        /// <inheritdoc />
         public override string Dictionary => "Cancer.gov";
 
+        /// <inheritdoc />
         public override AudienceType Audience => AudienceType.Patient;
 
+        /// <inheritdoc />
         public override string LanguageCode => "es";
 
+        /// <inheritdoc />
         public override string ExpandCharacter => "b";
 
+        /// <inheritdoc />
         public override int Size => 5;
 
+        /// <inheritdoc />
         public override int From => 0;
 
+        /// <inheritdoc />
         public override bool IncludeAdditionalInfo => true;
 
-        public override JObject ExpectedRequest => JObject.Parse(@"
+        /// <inheritdoc />
+        public override JsonNode ExpectedRequest => JsonNode.Parse(@"
                 {
                     ""from"": 0,
                     ""size"": 5,
@@ -38,11 +49,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
                             ""media""
                         ]
                     },
-                    ""sort"": [
-                        {
-                            ""term_name"": {}
-                        }
-                    ],
+                    ""sort"": { ""term_name"": {} },
                     ""query"": {
                         ""bool"": {
                             ""must"": [

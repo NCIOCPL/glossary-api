@@ -4,8 +4,12 @@ using System.Collections.Generic;
 
 namespace NCI.OCPL.Api.Glossary.Tests.ESTermsQueryTestData
 {
+    /// <summary>
+    /// Test data for TermsQueryService GetByName method with a specific term.
+    /// </summary>
     public class GetByName_s_1 : GetByNameTermsQueryTestData
     {
+        /// <inheritdoc />
         public override GlossaryTerm ExpectedData => new GlossaryTerm() {
             TermId = 46716,
             Language = "en",
@@ -24,6 +28,7 @@ namespace NCI.OCPL.Api.Glossary.Tests.ESTermsQueryTestData
             RelatedResources = new IRelatedResource[] { }
         };
 
+        /// <inheritdoc />
         public override string PrettyUrlName => "s-1";
     }
 }

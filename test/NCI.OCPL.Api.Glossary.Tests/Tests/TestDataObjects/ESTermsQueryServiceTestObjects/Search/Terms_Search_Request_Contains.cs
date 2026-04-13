@@ -1,27 +1,39 @@
 
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace NCI.OCPL.Api.Glossary.Tests
 {
+    /// <summary>
+    /// Test data for calling ESTermsQueryService::Search with MatchType.Contains.
+    /// </summary>
     class Terms_Search_Request_Contains : Terms_Search_Request_Base
     {
+        /// <inheritdoc />
         public override string Dictionary => "Cancer.gov";
 
+        /// <inheritdoc />
         public override AudienceType Audience => AudienceType.Patient;
 
+        /// <inheritdoc />
         public override string LangCode => "es";
 
+        /// <inheritdoc />
         public override string SearchTerm => "pollo";
 
+        /// <inheritdoc />
         public override MatchType MatchType => MatchType.Contains;
 
+        /// <inheritdoc />
         public override int Size => 5;
 
+        /// <inheritdoc />
         public override int From => 0;
 
+        /// <inheritdoc />
         public override bool IncludeAdditionalInfo => true;
 
-        public override JObject ExpectedRequest => JObject.Parse(@"
+        /// <inheritdoc />
+        public override JsonNode ExpectedRequest => JsonNode.Parse(@"
                 {
                     ""from"": 0,
                     ""size"": 5,
@@ -41,11 +53,7 @@ namespace NCI.OCPL.Api.Glossary.Tests
                             ""media""
                         ]
                     },
-                    ""sort"": [
-                        {
-                            ""term_name"": {}
-                        }
-                    ],
+                    ""sort"": { ""term_name"": {} },
                     ""query"": {
                         ""bool"": {
                             ""must"": [

@@ -1,18 +1,21 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Nest;
+
+using Elastic.Clients.Elasticsearch;
+using Elastic.Clients.Elasticsearch.Core.Search;
+using Elastic.Clients.Elasticsearch.QueryDsl;
 
 using NCI.OCPL.Api.Common;
 using NCI.OCPL.Api.Glossary.Models;
-using System;
 
 namespace NCI.OCPL.Api.Glossary.Services
 {
     /// <summary>
-    /// Elasticsearch implementation of the service for retrieveing suggestions for
+    /// Elasticsearch implementation of the service for retrieving suggestions for
     /// GlossaryTerm objects.
     /// </summary>
     public class ESAutosuggestQueryService : IAutosuggestQueryService
@@ -21,7 +24,7 @@ namespace NCI.OCPL.Api.Glossary.Services
         /// <summary>
         /// The elasticsearch client
         /// </summary>
-        private IElasticClient _elasticClient;
+        private ElasticsearchClient _elasticClient;
 
         /// <summary>
         /// The API options.
@@ -36,7 +39,7 @@ namespace NCI.OCPL.Api.Glossary.Services
         /// <summary>
         /// Constructor.
         /// </summary>
-        public ESAutosuggestQueryService(IElasticClient client,
+        public ESAutosuggestQueryService(ElasticsearchClient client,
             IOptions<GlossaryAPIOptions> apiOptionsAccessor,
             ILogger<ESAutosuggestQueryService> logger)
         {
@@ -58,13 +61,13 @@ namespace NCI.OCPL.Api.Glossary.Services
         public async Task<Suggestion[]> GetSuggestions(string dictionary, AudienceType audience, string language, string searchText, MatchType matchType, int size)
         {
             // Set up the SearchRequest to send to elasticsearch.
-            Indices index = Indices.Index(new string[] { this._apiOptions.AliasName });
+            Indices index = Indices.Index(this._apiOptions.AliasName );
 
-            ISearchResponse<Suggestion> response = null;
+            SearchResponse<Suggestion> response = null;
 
             try
             {
-                SearchRequest request;
+                SearchRequestDescriptor<Suggestion> request;
                 switch (matchType)
                 {
                     default:
@@ -88,12 +91,12 @@ namespace NCI.OCPL.Api.Glossary.Services
                 throw new APIErrorException(500, msg);
             }
 
-            if (!response.IsValid)
+            if (!response.IsValidResponse)
             {
                 string msg = $"Invalid response when searching for dictionary '{dictionary}', audience '{audience}', language '{language}', query '{searchText}', contains '{matchType}', size '{size}'."
                   .Replace(Environment.NewLine, String.Empty);
                 _logger.LogError(msg);
-                throw new APIErrorException(500, "errors occured");
+                throw new APIErrorException(500, "errors occurred");
             }
 
             List<Suggestion> retVal = new List<Suggestion>(response.Documents);
@@ -106,17 +109,15 @@ namespace NCI.OCPL.Api.Glossary.Services
         /// </summary>
         /// <param name="index">The index which will be searched against.</param>
         /// <param name="dictionary">The value for dictionary.</param>
-        /// <param name="audience">Patient or Healthcare provider</param>
         /// <param name="language">The language in which the details needs to be fetched</param>
+        /// <param name="audience">Patient or Healthcare provider</param>
         /// <param name="query">The text to search for.</param>
         /// <param name="matchType">Do a Begins or Exact match search? (Use BuildContainsRequest for Contains searches).</param>
         /// <param name="size">The number of records to retrieve.</param>
-        private SearchRequest BuildNonContainsRequest(Indices index, string dictionary, string language, AudienceType audience, string query, MatchType matchType, int size)
+        private SearchRequestDescriptor<Suggestion> BuildNonContainsRequest(Indices index, string dictionary, string language, AudienceType audience, string query, MatchType matchType, int size)
         {
             /*
-             * Create a query similar to the following.  The bool subquery is written with an overloaded version
-             * of operator && which supplies the `{"bool" :  {"must": [` portion for you.
-             * This is somewhat explained here: https://www.elastic.co/guide/en/elasticsearch/client/net-api/current/bool-queries.html.
+             * Create a query similar to the following.
              *
              * curl -XPOST http://SERVER_NAME/glossaryv1/terms/_search -H 'Content-Type: application/x-ndjson'   -d '{
              *   "query": {
@@ -134,24 +135,24 @@ namespace NCI.OCPL.Api.Glossary.Services
              * , "size": 10
              * }'
              */
-            SearchRequest request = new SearchRequest(index)
+            var boolQuery = new BoolQuery
             {
-                Query = new TermQuery {Field = "language", Value = language } &&
-                        new TermQuery {Field = "audience", Value = audience.ToString() } &&
-                        new TermQuery {Field = "dictionary", Value = dictionary } &&
-                        (matchType == MatchType.Begins ?
-                            (QueryBase)new PrefixQuery {Field = "term_name", Value = query } :
-                            (QueryBase)new TermQuery { Field = "term_name", Value = query }),
-                Sort = new List<ISort>
+                Must = new Query[]
                 {
-                    new FieldSort { Field = "term_name" }
-                },
-                Source = new SourceFilter
-                {
-                    Includes = new string[]{"term_id", "term_name"}
-                },
-                Size = size
+                    new TermQuery { Field = "language", Value = language },
+                    new TermQuery { Field = "audience", Value = audience.ToString() },
+                    new TermQuery { Field = "dictionary", Value = dictionary },
+                    matchType == MatchType.Begins
+                        ? new PrefixQuery { Field = "term_name", Value = query }
+                        : new TermQuery { Field = "term_name", Value = query }
+                }
             };
+
+            SearchRequestDescriptor<Suggestion> request = new SearchRequestDescriptor<Suggestion>(index)
+                .Query(boolQuery)
+                .Sort(new FieldSort(new Field("term_name")))
+                .Size(size)
+                .Source( new SourceFilter{ Includes = new string[] { "term_id", "term_name" } });
 
             return request;
         }
@@ -161,16 +162,14 @@ namespace NCI.OCPL.Api.Glossary.Services
         /// </summary>
         /// <param name="index">The index which will be searched against.</param>
         /// <param name="dictionary">The value for dictionary.</param>
-        /// <param name="audience">Patient or Healthcare provider</param>
         /// <param name="language">The language in which the details needs to be fetched</param>
+        /// <param name="audience">Patient or Healthcare provider</param>
         /// <param name="query">The text to search for.</param>
         /// <param name="size">The number of records to retrieve.</param>
-        private SearchRequest BuildContainsRequest(Indices index, string dictionary, string language, AudienceType audience, string query, int size)
+        private SearchRequestDescriptor<Suggestion> BuildContainsRequest(Indices index, string dictionary, string language, AudienceType audience, string query, int size)
         {
             /*
-             * Create a query similar to the following.  The bool subquery is written with an overloaded version
-             * of operator && which supplies the `{"bool" :  {"must": [` portion for you.
-             * This is somewhat explained here: https://www.elastic.co/guide/en/elasticsearch/client/net-api/current/bool-queries.html.
+             * Create a query similar to the following.
              *
              * curl -XPOST http://SERVER_NAME/glossaryv1/terms/_search -H 'Content-Type: application/x-ndjson'   -d '{
              *   "query": {
@@ -190,23 +189,26 @@ namespace NCI.OCPL.Api.Glossary.Services
              * , "size": 10
              * }'
              */
-            SearchRequest request = new SearchRequest(index)
+            var boolQuery = new BoolQuery
             {
-                Query = new TermQuery {Field = "language", Value = language.ToString() } &&
-                        new TermQuery {Field = "audience", Value = audience.ToString() } &&
-                        new TermQuery {Field = "dictionary", Value = dictionary.ToString() } &&
-                        new MatchPhraseQuery {Field = "term_name._autocomplete", Query = query.ToString() } &&
-                        !new PrefixQuery {Field = "term_name", Value = query.ToString() },
-                Sort = new List<ISort>
+                Must = new Query[]
                 {
-                    new FieldSort { Field = "term_name" }
+                    new TermQuery { Field = "language", Value = language },
+                    new TermQuery { Field = "audience", Value = audience.ToString() },
+                    new TermQuery { Field = "dictionary", Value = dictionary },
+                    new MatchPhraseQuery { Field = "term_name._autocomplete", Query = query }
                 },
-                Source = new SourceFilter
+                MustNot = new Query[]
                 {
-                    Includes = new string[] { "term_id", "term_name" }
-                },
-                Size = size
+                    new PrefixQuery { Field = "term_name", Value = query }
+                }
             };
+
+            SearchRequestDescriptor<Suggestion> request = new SearchRequestDescriptor<Suggestion>(index)
+                .Query(boolQuery)
+                .Sort(new FieldSort(new Field("term_name")))
+                .Source( new SourceFilter{ Includes = new string[] { "term_id", "term_name" } })
+                .Size(size);
 
             return request;
         }

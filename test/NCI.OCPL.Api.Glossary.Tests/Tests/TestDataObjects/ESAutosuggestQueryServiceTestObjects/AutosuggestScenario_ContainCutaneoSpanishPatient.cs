@@ -1,5 +1,3 @@
-using NCI.OCPL.Api.Glossary;
-
 namespace NCI.OCPL.Api.Glossary.Tests.ESAutosuggestQueryTestData
 {
     /// <summary>
@@ -8,8 +6,10 @@ namespace NCI.OCPL.Api.Glossary.Tests.ESAutosuggestQueryTestData
     /// </summary>
     public class AutosuggestScenario_ContainCutaneoSpanishPatient : BaseAutosuggestTestData
     {
+        /// <inheritdoc />
         public override string TestFilename => "contain_cutaneo_cancer.gov_es_patient.json";
 
+        /// <inheritdoc />
         public override Suggestion[] ExpectedData => new Suggestion[]
         {
             new Suggestion()

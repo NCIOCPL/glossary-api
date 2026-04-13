@@ -1,13 +1,17 @@
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace NCI.OCPL.Api.Glossary.Tests.ESTermsQueryTestData
 {
+    /// <summary>
+    /// Base class for test data for TermsQueryService GetCount method when verifying
+    /// the generated request body.
+    /// </summary>
     public abstract class BaseTermsQueryCountTestData
     {
         /// <summary>
-        /// Gets the expected data object. This is what the request is supposed to look like.
+        /// The expected request body.
         /// </summary>
-        public abstract JObject ExpectedData { get; }
+        public abstract JsonNode ExpectedData { get; }
 
         /// <summary>
         /// The name of the dictionary for the suggestion request

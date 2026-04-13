@@ -1,5 +1,4 @@
-using NCI.OCPL.Api.Glossary;
-using Newtonsoft.Json.Linq;
+using System.Text.Json.Nodes;
 
 namespace NCI.OCPL.Api.Glossary.Tests.ESAutosuggestQueryTestData
 {
@@ -12,19 +11,26 @@ namespace NCI.OCPL.Api.Glossary.Tests.ESAutosuggestQueryTestData
     /// </summary>
     public class Autosuggest_Request_Exact : BaseAutosuggestRequestTestData
     {
+        /// <inheritdoc />
         public override string SearchText => "Are you kidding?";
 
+        /// <inheritdoc />
         public override MatchType MatchType => MatchType.Exact;
 
+        /// <inheritdoc />
         public override string DictionaryName => "Cancer.gov";
 
+        /// <inheritdoc />
         public override string Language => "en";
 
+        /// <inheritdoc />
         public override AudienceType Audience => AudienceType.HealthProfessional;
 
+        /// <inheritdoc />
         public override int Size => 1;
 
-        public override JObject ExpectedData => JObject.Parse(@"
+        /// <inheritdoc />
+        public override JsonNode ExpectedData => JsonNode.Parse(@"
             {
                 ""query"": {
                     ""bool"": {
@@ -66,9 +72,7 @@ namespace NCI.OCPL.Api.Glossary.Tests.ESAutosuggestQueryTestData
                         ""term_name""
                     ]
                 },
-                ""sort"": [
-                    { ""term_name"": {} }
-                ]
+                ""sort"": { ""term_name"": {} }
             }
         ");
     }
